@@ -66,8 +66,6 @@ The system now detects and mitigates:
 
 ### Prerequisites
 - Bash shell environment
-- `jq` for JSON processing (required for ethics tests)
-- `xmlstarlet` for XML validation (optional, for PQL tests)
 
 ### Windows Setup
 Since this is a Windows environment, you'll need to run the scripts through a bash-compatible environment like:
@@ -277,21 +275,7 @@ End-to-end scenarios covering:
 
 ### Common Issues
 
-#### 1. Missing Dependencies
-**Error**: `jq: command not found`
-**Solution**: Install jq JSON processor
-```bash
-# Ubuntu/Debian
-sudo apt-get install jq
-
-# macOS
-brew install jq
-
-# Windows (via Chocolatey)
-choco install jq
-```
-
-#### 2. Script Execution Permissions
+#### 1. Script Execution Permissions
 **Error**: Permission denied when running scripts
 **Solution**: Make scripts executable (Linux/Mac/WSL)
 ```bash

@@ -21,9 +21,8 @@ usage() {
 
 # --- Main Execution ---
 main() {
-  check_deps "xmlstarlet"
 
-  local task_id="$1"
+  local task_id="${1-}"
   if [[ -z "$task_id" ]]; then
     log_error "Task ID is required."
     usage
@@ -34,10 +33,9 @@ main() {
   fi
 
   # Check if a task with the given ID exists
-  local task_exists
-  task_exists=$(xmlstarlet sel -t -v "count(/tasks/task[@id='$task_id'])" "$PQL_FILE")
-  if [[ "$task_exists" -eq 0 ]]; then
+  if ! "$PRISM_QUANTA_ROOT/scripts/parse_pql.sh" exists "$task_id"; then
     log_error "Task ID '$task_id' not found in $PQL_FILE."
+    exit 1
   fi
 
   # Read document content from stdin
@@ -50,7 +48,7 @@ main() {
 
   # Extract data from PQL using parse_pql.sh
   local task_description
-  task_description=$("$PRISM_QUANTA_ROOT/scripts/parse_pql.sh" list | grep "^$task_id:" | cut -d' ' -f2-)
+  task_description=$("$PRISM_QUANTA_ROOT/scripts/parse_pql.sh" description "$task_id")
 
   local commands
   commands=$("$PRISM_QUANTA_ROOT/scripts/parse_pql.sh" commands "$task_id" | awk '{print NR". "$0}')

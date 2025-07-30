@@ -237,8 +237,8 @@ These tasks are essential for a minimum viable product.
 
 2.  **Implement Prompt Generation (`scripts/generate_prompt.sh`):**
     -   Parse a PQL file (e.g., `pql/sample_commands.pql`).
-    -   Use `xmlstarlet` to extract commands and criteria.
     -   Assemble the extracted parts into a structured prompt suitable for the LLM.
+    -   Parsing logic will be handled by native shell tools or by the C++ interface.
     -   This script will be the primary input for `run_llm.sh`.
 
 ## P2: Rule & Consequence Engine
@@ -268,6 +268,38 @@ These tasks improve the developer/user experience and expand the system's capabi
 
 7.  **Documentation and Examples:**
     -   Keep `README.md` and all sample files (`.pql`, `.xml`) updated as features are added.
+
+---
+
+## P4: Internal XML Tooling
+This priority focuses on creating a self-contained, dependency-free XML utility to handle PQL files, aligning with the project's core principles.
+
+8.  **Design a Simple XML Parser and Serializer:**
+    -   **Objective:** Create a lightweight, native utility for reading and writing PQL-formatted XML files without external libraries.
+    -   **Rationale:** A custom utility tailored to the PQL schema will be faster, smaller, and more secure than a general-purpose library. It removes dependencies like `xmlstarlet` and ensures the entire application can run in a minimal environment.
+
+9.  **Implement the XML Parser (Deserializer):**
+    -   **Strategy:** Implement a simple, non-validating parser in C++ that can be compiled into the main `quantaporto_interface` binary or as a small standalone utility.
+    -   **Approach:**
+        -   Read the XML file line by line.
+        -   Use basic string manipulation and regular expressions to identify tags, attributes, and content.
+        -   It will only need to support a subset of XML: elements, attributes, and text content. It will not support comments, CDATA, or namespaces.
+        -   The parser will expose a function to query data using a simplified path syntax (e.g., `task[@id='t01']/description`).
+    -   **Integration:** The `scripts/parse_pql.sh` script will be updated to call this internal utility to extract data from PQL files.
+
+10. **Implement the XML Serializer:**
+    -   **Strategy:** Create a C++ function or utility that can generate a well-formed XML string from an in-memory data structure (e.g., a `std::map` or a custom struct).
+    -   **Approach:**
+        -   The function will take key-value pairs representing the PQL task.
+        -   It will construct the XML string, ensuring proper tag nesting, indentation, and escaping of special characters (`&`, `<`, `>`).
+    -   **Integration:** This will be used by components that need to create or modify PQL files programmatically.
+
+11. **Replace Existing XML Logic:**
+    -   **Objective:** Audit all shell scripts and C++ source code to replace any remaining calls to external XML tools (`xmlstarlet`, `grep`/`sed` for XML parsing) with the new internal utility.
+    -   **Tasks:**
+        -   Refactor `scripts/generate_prompt.sh`.
+        -   Refactor `scripts/parse_pql.sh`.
+        -   Ensure the C++ daemon uses the internal functions directly for maximum performance.
 
 ---
 
@@ -301,7 +333,7 @@ The daemon will be composed of the following key components:
 
 1.  **PQL Parser:**
     -   **Objective:** Parse PQL (`.pql`) files to extract commands, criteria, and other metadata.
-    -   **Implementation:** Use a robust XML parsing library (e.g., `tinyxml2` or `pugixml`) to read and validate PQL files against the `pql.xsd` schema.
+    -   **Implementation:** Use the application's internal, lightweight XML parsing capabilities to read and validate PQL files against the `pql.xsd` schema. This avoids external library dependencies for the end-user.
     -   **Output:** A structured in-memory representation of the PQL commands.
 
 2.  **Prompt Generator:**

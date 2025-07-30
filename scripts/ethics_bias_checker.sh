@@ -213,24 +213,32 @@ check_ethics_and_bias() {
     
     # Output results
     if [[ "$output_format" == "json" ]]; then
-        echo "{"
-        echo "  \"status\": \"fail\","
-        echo "  \"violations\": ["
-        printf '    "%s"' "${violations[0]}"
-        for violation in "${violations[@]:1}"; do
-            printf ',\n    "%s"' "$violation"
+        printf '{\n'
+        printf '  "status": "fail",\n'
+        printf '  "violations": [\n'
+        for i in "${!violations[@]}"; do
+            local escaped_violation="${violations[$i]//\"/\\\"}"
+            printf '    "%s"' "$escaped_violation"
+            if [[ $i -lt $((${#violations[@]} - 1)) ]]; then
+                printf ',\n'
+            else
+                printf '\n'
+            fi
         done
-        echo ""
-        echo "  ],"
-        echo "  \"severity_score\": $severity_score,"
-        echo "  \"suggestions\": ["
-        printf '    "%s"' "${suggestions[0]}"
-        for suggestion in "${suggestions[@]:1}"; do
-            printf ',\n    "%s"' "$suggestion"
+        printf '  ],\n'
+        printf '  "severity_score": %s,\n' "$severity_score"
+        printf '  "suggestions": [\n'
+        for i in "${!suggestions[@]}"; do
+            local escaped_suggestion="${suggestions[$i]//\"/\\\"}"
+            printf '    "%s"' "$escaped_suggestion"
+            if [[ $i -lt $((${#suggestions[@]} - 1)) ]]; then
+                printf ',\n'
+            else
+                printf '\n'
+            fi
         done
-        echo ""
-        echo "  ]"
-        echo "}"
+        printf '  ]\n'
+        printf '}\n'
     else
         echo "FAIL: Ethics/bias violations detected"
         echo "Violations:"
