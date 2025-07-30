@@ -3,14 +3,13 @@
 This document outlines the identified discrepancies between the project's documentation and its codebase. The goal is to provide a clear path for aligning the two, ensuring that developers have accurate and reliable information.
 
 ## Methodology
-
 To identify these conflicts, we performed a systematic review comparing documentation sources against the current `main` branch. The review process included:
 
 1.  **API Documentation vs. Implementation:** Comparing public API signatures in documentation (e.g., READMEs, JSDoc, Swagger/OpenAPI specs) with the actual function and method signatures in the source code.
+1.  **Script/Tool Documentation vs. Implementation:** Comparing documented command-line arguments, flags, and behaviors of shell scripts and the C++ interface with their actual implementation.
 2.  **Configuration Guides vs. Code:** Validating documented configuration options, environment variables, and default values against their implementation in configuration files and scripts.
 3.  **Architectural Diagrams vs. Code Structure:** Checking if the high-level component diagrams and data flow descriptions in the documentation accurately reflect the current module dependencies and interactions in the codebase.
-4.  **Getting Started & Installation Guides vs. Reality:** Executing the steps in installation and setup guides to verify dependencies, build commands, and deployment procedures.
-5.  **Inline Code Comments vs. Code:** Auditing inline documentation (like JSDoc, TSDoc, docstrings) for consistency with the function's behavior, parameters, and return values.
+4.  **Inline Code Comments vs. Code:** Auditing inline documentation (like C++ comments and script headers) for consistency with the function's behavior, parameters, and return values.
 
 ---
 
@@ -18,37 +17,37 @@ To identify these conflicts, we performed a systematic review comparing document
 
 Below is a list of identified conflicts, categorized by the area of the project. Each item includes a description of the conflict and a suggested resolution.
 
-### 1. API Endpoints
+### 1. Script Arguments & Behavior
 
-| Endpoint & Method | Documentation Discrepancy | Code Implementation | Suggested Action |
+| Script & Argument | Documentation Discrepancy | Code Implementation | Suggested Action |
 | :---------------- | :------------------------ | :------------------ | :--------------- |
-| `GET /api/users`  | Documentation states it returns an array of user objects. | Returns an object with a `data` key containing the array: `{ data: [...] }`. | Update API documentation to reflect the correct response structure. |
-| `POST /api/items` | `price` parameter is documented as optional. | The field is required and throws a 400 error if missing. | Mark `price` as required in the documentation. |
-| ...               | ...                       | ...                 | ...              |
+| `scripts/ethics_bias_checker.sh --file` | Documented as a valid way to check a file's content. | The `--file` argument is ignored; the script only accepts `--text` or piped input. | Remove the `--file` argument from documentation or implement the functionality. |
+| `scripts/run_planner.sh --verbose` | Not documented, but would be useful for debugging the planning stages. | The script has no verbosity flag; all output goes to stdout. | Add a `--verbose` flag to the script and document its usage. |
+| ... | ... | ... | ... |
 
-### 2. Function/Method Signatures
+### 2. C++ Interface Functions
 
 | File Path & Function | Documentation Discrepancy | Code Implementation | Suggested Action |
 | :------------------- | :------------------------ | :------------------ | :--------------- |
-| `src/utils/date.js` `formatDate(date)` | JSDoc says it accepts a `Date` object. | Function also handles ISO date strings. | Update JSDoc to include `string` as a possible type for the `date` parameter. |
-| `src/services/auth.py` `login(username, password)` | Docstring states it returns a JWT token (string). | Returns a tuple `(token, user_id)`. | Correct the docstring to reflect the tuple return type. |
-| ...                  | ...                       | ...                 | ...              |
+| `interface/quantaporto_interface.cpp` `load_rules(path)` | Header comment states it returns `bool` for success/failure. | The function returns an `int` (0 for success, -1 for failure). | Update the header comment to specify the `int` return type and its meaning. |
+| `interface/quantaporto_interface.cpp` `run_pipeline()` | `docs/plan.md` implies this function takes a task ID as an argument. | The function takes no arguments and reads the task from a predefined file path. | Clarify in `docs/plan.md` that the function is parameter-less. |
+| ... | ... | ... | ... |
 
 ### 3. Configuration
 
 | Configuration Item | Documentation Discrepancy | Code Implementation | Suggested Action |
 | :----------------- | :------------------------ | :------------------ | :--------------- |
-| `DATABASE_URL` env var | Documented as optional, with a fallback to an in-memory SQLite DB. | The application fails to start if `DATABASE_URL` is not set. | Update documentation to mark `DATABASE_URL` as a required environment variable. |
-| `config/app.json` `cache.ttl` | Documentation says the default is `3600` seconds. | The default value in the code is `600` seconds. | Align the documentation with the code's default value. |
-| ...                | ...                       | ...                 | ...              |
+| `LOG_FILE_PATH` | `docs/plan.md` states the C++ interface logs to `data/logs/interface.log`. | The path is hardcoded in the C++ source as `logs/quantaporto.log`. | Update `docs/plan.md` to reflect the correct log file path. |
+| `RULES_FILE` | `docs/plan.md` specifies rules are in `config/rules.txt`. | The C++ interface is hardcoded to load `rules/rules.xml`. | Align the documentation and implementation on a single path and format. |
+| ... | ... | ... | ... |
 
 ### 4. Installation & Setup
 
 | Guide Section | Documentation Discrepancy | Required Steps | Suggested Action |
 | :------------ | :------------------------ | :------------- | :--------------- |
-| "Prerequisites" | Lists Node.js v14.x. | The `.nvmrc` file specifies v16.x, and the build fails on v14 due to unsupported syntax. | Update the "Prerequisites" section to require Node.js v16.x or later. |
-| "Running the app" | States to run `npm start`. | The `package.json` `start` script is missing. The correct command is `npm run dev`. | Correct the command in the "Running the app" section. |
-| ...           | ...                       | ...            | ...              |
+| "Dependencies" | `README.md` only lists `Bash`. | The C++ interface requires `g++` and `make` to be compiled. | Update the "Dependencies" section in `README.md` to include build tools. |
+| "Building the Interface" | No instructions are provided for compiling `quantaporto_interface.cpp`. | A user must run `g++ -o quantaporto_interface interface/quantaporto_interface.cpp`. | Add a "Build Instructions" section to the `README.md`. |
+| ... | ... | ... | ... |
 
 ### 5. External Library Dependencies
 

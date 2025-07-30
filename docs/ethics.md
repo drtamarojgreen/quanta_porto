@@ -310,8 +310,8 @@ VERBOSE=true ./scripts/enhanced_task_manager.sh
 
 ### Planned Features
 1. **Machine Learning Integration**: AI-powered bias detection
-2. **Real-time Dashboard**: Web-based monitoring interface
-3. **API Integration**: RESTful API for external integration
+2. **Real-time Monitoring**: A terminal-based (TUI) dashboard for monitoring ethics violations.
+3. **Command-Line Interface (CLI)**: A dedicated CLI for external integration and scripting.
 4. **Advanced Analytics**: Trend analysis and predictive modeling
 5. **Multi-language Support**: Bias detection in multiple languages
 

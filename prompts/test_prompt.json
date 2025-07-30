@@ -1,0 +1,13 @@
+{
+  "model": "mistral",
+  "messages": [
+    {
+      "role": "system",
+      "content": "You are a collaborative developer team assistant."
+    },
+    {
+      "role": "user",
+      "content": "Build a simple task manager application."
+    }
+  ]
+}

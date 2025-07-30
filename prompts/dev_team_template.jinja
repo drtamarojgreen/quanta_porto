@@ -1,0 +1,24 @@
+{{ bos_token }}
+{% for message in messages %}
+{{ message['role'] }}: {{ message['content'] }}
+{% endfor %}
+
+systems_analyst:
+{% if messages[-1]['role'] == 'user' %}
+Define the detailed system requirements for the following user request:
+
+"{{ messages[-1]['content'] }}"
+
+test_team:
+Create unit tests and behavior-driven development (BDD) tests based on the systems analyst's requirements.
+
+development_team:
+Scaffold the application according to the requirements and tests.
+
+test_team:
+Run the tests on the scaffolded application and report results, highlighting any failures or issues.
+
+systems_analyst:
+Verify if the application and tests meet the original requirements and provide feedback.
+
+assistant:
