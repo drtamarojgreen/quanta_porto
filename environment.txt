@@ -1,0 +1,51 @@
+# --- Configuration ---
+# Paths for files inside the project are relative to the project root.
+
+# --- External Dependencies (Absolute Paths) ---
+# The following paths for the model and LLM executable must be ABSOLUTE.
+
+LLAMACPP_PATH = /path/to/your/llama.cpp/bin
+LLM_NAME = llama-cli
+MODEL_DIRECTORY = /path/to/your/models
+MODEL_FILENAME = your_model_name.gguf
+LOG_FILE = logs/interface.log
+PROMPT_FILE = prompts/input_prompt.txt
+TIMEOUT_MARKER = logs/.timeout
+RULES_FILE = config/rules.txt
+PRIORITY_FILE = config/priorities.txt
+POLL_INTERVAL_SEC = 60
+TIMEOUT_DURATION_SEC = 7200
+STRATEGY_PLAN_FILE = memory/strategy_plan.txt
+REQUIREMENTS_FILE = memory/requirements.md
+TASK_FILE = rules/tasks.txt
+OUTPUT_DIR = agent_output
+TIMEOUT_FILE = timeout.flag
+ETHICS_LOG = logs/ethics_violations.log
+BIAS_LOG = logs/bias_violations.log
+ETHICS_RULES_FILE = config/ethics_rules.txt
+BIAS_PATTERNS_FILE = config/bias_patterns.txt
+LLM_OUTPUT_LOG = logs/llm_output.log
+RULE_ENFORCER_SCRIPT = ./rule_enforcer.sh
+TASKS_XML_FILE = memory/tasks.xml
+REVIEW_SUMMARY_FILE = memory/review_summary.txt
+LLM_BEHAVIOR_LOG = logs/llm_.log
+PQL_SCHEMA_FILE = rules/pql.xsd
+TASK_LIST_RAW_FILE = memory/task_list_raw.txt
+TASK_LIST_FINAL_FILE = memory/task_list_final.txt
+TASK_LIST_REVISED_FILE = memory/task_list_revised.txt
+FLAGGED_TASKS_FILE = memory/flagged_tasks.txt
+LLM_INFER_SCRIPT = llm_infer.sh
+TASK_TMP_FILE = memory/task_tmp.txt
+POLLING_LLM_OUTPUT_FILE = output/llm_output.txt
+PHILOSOPHY_TASKS_FILE = rules/philosophy_tasks.txt
+REWARD_TASKS_FILE = rules/reward_tasks.txt
+ACTIVE_TASKS_FILE = rules/active_tasks.txt
+PQL_TEST_RESULTS_FILE = logs/pql_test_results.log
+ETHICS_TEST_RESULTS_FILE = logs/ethics_test_results.log
+ACTIVE_TASKS_PROMPT_FILE = prompts/active_tasks_prompt.txt
+RULESET_XML_FILE = rules/ruleset.xml
+RUN_LOG_FILE = logs/run_log.txt
+SELF_CHAT_LOG_FILE = logs/self_chat_log.txt
+PROJECT_GOALS_FILE = memory/project_goals.txt
+CURRENT_PROMPT_FILE = memory/current_prompt.txt
+CURRENT_RESPONSE_FILE = memory/current_response.txt

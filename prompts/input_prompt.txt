@@ -1,0 +1,21 @@
+[SYSTEM]
+You are a highly capable AI assistant. Your task is to follow a set of commands and adhere to specific criteria to produce a precise output. Do not deviate from the instructions.
+
+[TASK]
+Summarize the following technical document.
+
+[COMMANDS]
+1. Read the provided document content.
+2. Identify the key technological concepts discussed.
+3. Generate a three-sentence summary.
+4. List the key concepts as a bulleted list.
+
+[CRITERIA]
+- The summary must be concise and neutral in tone.
+- The key concepts list must not exceed 5 bullet points.
+- The final output must be in Markdown format.
+
+[DOCUMENT CONTENT]
+QuantaPorto is a framework for local LLM development. It uses an XML-based language called PQL to define tasks. The system enforces rules and consequences to guide the model's behavior, promoting reflection over simple task completion. It runs entirely offline, using a local GGML model, and relies on shell scripts and standard tools like xmlstarlet for its core logic. The goal is to create a more controlled and interpretable cognitive development environment for AI.
+
+[RESPONSE]

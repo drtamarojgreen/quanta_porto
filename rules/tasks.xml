@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tasks xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="pql.xsd">
+  
+  <task id="summarize-quantaporto">
+    <description>Summarize the following technical document.</description>
+    <commands>
+      <command>Read the provided document content.</command>
+      <command>Identify the key technological concepts discussed.</command>
+      <command>Generate a three-sentence summary.</command>
+      <command>List the key concepts as a bulleted list.</command>
+    </commands>
+    <criteria>
+      <criterion>The summary must be concise and neutral in tone.</criterion>
+      <criterion>The key concepts list must not exceed 5 bullet points.</criterion>
+      <criterion>The final output must be in Markdown format.</criterion>
+    </criteria>
+  </task>
+
+  <!-- This is the example task from the parse_pql.sh script -->
+  <task id="task-001">
+    <description>Analyze the provided text for emotional sentiment.</description>
+    <commands>
+      <command>ANALYZE sentiment</command>
+    </commands>
+    <criteria>
+      <criterion>Output must be in JSON format.</criterion>
+    </criteria>
+  </task>
+
+  <!-- Tasks generated from docs/plan.md -->
+
+  <task id="implement-quantaporto-interface">
+    <description>Implement the C++ scheduler and command interface for Bash-driven LLM workflows in interface/quantaporto_interface.cpp.</description>
+    <commands>
+      <command>Implement logic to load rules from rules.txt and priorities from priorities.txt.</command>
+      <command>Implement command-line argument parsing for --execute, --list-tasks, and --get-reward-task.</command>
+      <command>Develop the core scheduling logic to select tasks based on priority.</command>
+      <command>Implement the mechanism to execute shell commands for a given task.</command>
+      <command>Add basic logging for task execution status.</command>
+    </commands>
+    <criteria>
+      <criterion>The C++ application must compile successfully using the project's Makefile.</criterion>
+      <criterion>The application must correctly parse all specified command-line arguments.</criterion>
+      <criterion>The application must handle file I/O errors gracefully (e.g., missing rule files).</criterion>
+    </criteria>
+  </task>
+
+  <task id="create-cpp-makefile">
+    <description>Create a Makefile in the interface/ directory to build the quantaporto_interface executable.</description>
+    <commands>
+      <command>Define the C++ compiler and flags.</command>
+      <command>Create a default 'all' target to build the executable.</command>
+      <command>Create a 'clean' target to remove object files and the executable.</command>
+      <command>Create an 'install' target to copy the executable to a bin/ directory.</command>
+    </commands>
+    <criteria>
+      <criterion>`make all` must successfully compile quantaporto_interface.cpp into an executable named `quantaporto_interface`.</criterion>
+      <criterion>`make clean` must remove all generated build artifacts.</criterion>
+      <criterion>`make install` must place the executable in the project's bin/ directory.</criterion>
+    </criteria>
+  </task>
+
+  <task id="implement-run-task-script">
+    <description>Develop the scripts/run_task.sh script to execute a specific task by its ID.</description>
+    <commands>
+      <command>The script must accept a single argument: the task ID.</command>
+      <command>Call the `quantaporto_interface --execute &lt;task_id&gt;` command with the provided ID.</command>
+      <command>Capture and log the standard output and standard error of the execution.</command>
+      <command>Exit with a non-zero status if the task ID is not provided or if the interface returns an error.</command>
+    </commands>
+    <criteria>
+      <criterion>Running `scripts/run_task.sh my-task` must invoke `./bin/quantaporto_interface --execute my-task`.</criterion>
+      <criterion>The script must handle missing arguments with a user-friendly error message.</criterion>
+    </criteria>
+  </task>
+
+  <task id="implement-get-reward-script">
+    <description>Develop the scripts/get_reward.sh script to fetch and execute a reward task.</description>
+    <commands>
+      <command>Call the `quantaporto_interface --get-reward-task` command.</command>
+      <command>Parse the output to get the reward task ID.</command>
+      <command>Call `scripts/run_task.sh` with the retrieved reward task ID.</command>
+      <command>Integrate this script into pql_test_and_reward.sh as the reward mechanism.</command>
+    </commands>
+    <criteria>
+      <criterion>The script must successfully retrieve a task ID from the C++ interface.</criterion>
+      <criterion>The script must correctly invoke run_task.sh with the fetched ID.</criterion>
+    </criteria>
+  </task>
+
+  <task id="implement-list-tasks-script">
+    <description>Develop the scripts/list_tasks.sh script to display all available tasks.</description>
+    <commands>
+      <command>Call the `quantaporto_interface --list-tasks` command.</command>
+      <command>Display the formatted output from the C++ interface to the user's console.</command>
+    </commands>
+    <criteria>
+      <criterion>The script must display a human-readable list of task IDs and their descriptions.</criterion>
+    </criteria>
+  </task>
+
+  <task id="update-documentation">
+    <description>Update the project's README.md and create example configuration files.</description>
+    <commands>
+      <command>Update README.md with instructions for building the C++ interface.</command>
+      <command>Update README.md with usage examples for the new shell scripts (run_task.sh, list_tasks.sh, get_reward.sh).</command>
+      <command>Create rules.txt.example and priorities.txt.example with clear, commented content.</command>
+    </commands>
+    <criteria>
+      <criterion>The README.md must contain a "Build Instructions" section for the C++ code.</criterion>
+      <criterion>The README.md must contain a "Usage" section for the new scripts.</criterion>
+      <criterion>Example configuration files must be present and well-documented.</criterion>
+    </criteria>
+  </task>
+
+</tasks>
