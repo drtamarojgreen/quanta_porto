@@ -8,10 +8,10 @@ LLAMACPP_PATH = /path/to/your/llama.cpp/bin
 LLM_NAME = llama-cli
 MODEL_DIRECTORY = /path/to/your/models
 MODEL_FILENAME = your_model_name.gguf
-LOG_FILE = logs/interface.log
+LOG_FILE = logs/quantaporto.log
 PROMPT_FILE = prompts/input_prompt.txt
 TIMEOUT_MARKER = logs/.timeout
-RULES_FILE = config/rules.txt
+RULES_FILE = rules/rules.xml
 PRIORITY_FILE = config/priorities.txt
 POLL_INTERVAL_SEC = 60
 TIMEOUT_DURATION_SEC = 7200
@@ -53,3 +53,10 @@ CURRENT_RESPONSE_FILE = memory/current_response.txt
 # --- Behavior Flags ---
 LOG_LEVEL = INFO
 ENABLE_INTERSECTIONAL_CHECK = true
+ENABLE_ETHICS_LOGGING = true
+MAX_RETRIES = 3
+
+# --- LLM Server Mode ---
+LLM_INFERENCE_MODE = cli
+LLAMACPP_SERVER_URL = http://localhost:8080
+LLAMACPP_SERVER_ENDPOINT = /completion

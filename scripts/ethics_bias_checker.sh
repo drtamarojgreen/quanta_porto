@@ -11,9 +11,6 @@ source "$(dirname "$0")/utils.sh"
 # Setup environment
 setup_env
 
-# Configuration
-SEVERITY_THRESHOLD="medium"
-
 # Create bias patterns file if it doesn't exist
 create_bias_patterns() {
     if [[ ! -f "$BIAS_PATTERNS_FILE" ]]; then
@@ -184,7 +181,7 @@ check_ethics_and_bias() {
     # Detect violations
     local violations
     mapfile -t violations < <(detect_bias "$input_text")
-    
+
     if [[ ${#violations[@]} -eq 0 ]]; then
         if [[ "$output_format" == "json" ]]; then
             echo '{"status": "pass", "violations": [], "severity_score": 0, "suggestions": []}'
@@ -193,25 +190,27 @@ check_ethics_and_bias() {
         fi
         return 0
     fi
-    
-    # Calculate severity
+
+    # Calculate severity for logging purposes
     local severity_score
     severity_score=$(calculate_severity "${violations[@]}")
-    
+
     # Generate suggestions
     local suggestions
     mapfile -t suggestions < <(generate_mitigation "${violations[@]}")
     
     # Log violations
-    mkdir -p "$(dirname "$ETHICS_LOG")"
-    {
-        echo "$(date '+%Y-%m-%d %H:%M:%S') - Ethics/Bias Violations Detected:"
-        printf '  - %s\n' "${violations[@]}"
-        echo "  Severity Score: $severity_score"
-        echo "  Suggestions:"
-        printf '    - %s\n' "${suggestions[@]}"
-        echo "---"
-    } >> "$ETHICS_LOG"
+    if [[ "${ENABLE_ETHICS_LOGGING:-true}" == "true" ]]; then
+        mkdir -p "$(dirname "$ETHICS_LOG")"
+        {
+            echo "$(date '+%Y-%m-%d %H:%M:%S') - Ethics/Bias Violations Detected:"
+            printf '  - %s\n' "${violations[@]}"
+            echo "  Severity Score: $severity_score"
+            echo "  Suggestions:"
+            printf '    - %s\n' "${suggestions[@]}"
+            echo "---"
+        } >> "$ETHICS_LOG"
+    fi
     
     # Output results
     if [[ "$output_format" == "json" ]]; then
@@ -265,6 +264,9 @@ main() {
                 shift 2
                 ;;
             -f|--file)
+                if [[ ! -r "$2" ]]; then
+                    log_error "File not found or not readable: $2"
+                fi
                 input_text=$(cat "$2")
                 shift 2
                 ;;
