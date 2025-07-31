@@ -4,25 +4,25 @@ This document identifies key areas in the codebase that could be refactored to i
 
 ---
 
-### 1. Separate Concerns in Application Entry Point
+### 1. Separate Core Logic from Script Orchestration
 
-*   **Observation:** The main `index.js` file is responsible for too many things, including server initialization, route definitions, business logic, and database queries. This creates a monolithic structure that is difficult to manage.
+*   **Observation:** Core logic (like rule parsing and consequence evaluation) is mixed between the C++ interface and various shell scripts. This creates a monolithic structure that is difficult to manage and test.
 *   **Suggestion:**
-    *   **Routes:** Move all route definitions into a dedicated `routes/` directory. Each file could correspond to a feature (e.g., `routes/userRoutes.js`).
-    *   **Controllers:** Extract the business logic from route handlers into a `controllers/` directory. This separates the "what to do" (controller logic) from the "how to get there" (routing).
-    *   **Server Setup:** Keep the main `index.js` or a `server.js` file lean, with its primary responsibility being to configure and start the server, and wire up the routes.
+    *   **Core Engine (C++):** The C++ application (`quantaporto_interface`) should be solely responsible for high-performance tasks: parsing rules, managing state, and executing the core decision-making loop.
+    *   **Orchestration (Shell Scripts):** The `scripts/` directory should contain scripts that act as the "glue," responsible for file system operations, invoking the C++ engine, and chaining tasks together in the pipeline.
+    *   **Entry Point:** The main entry point (`main` or `run.sh`) should be lean, primarily responsible for setting up the environment and starting the C++ daemon or the main task pipeline.
 
-### 2. Abstract Database Interactions
+### 2. Abstract Data Storage Interactions
 
-*   **Observation:** Database queries are currently embedded directly within controller functions. This tightly couples the business logic to the specific database implementation (e.g., specific SQL queries or NoSQL methods).
-*   **Suggestion:** Introduce a data access layer (e.g., a `services/` or `models/` directory). This layer would be solely responsible for all database interactions. Controllers would call functions from this layer instead of talking to the database directly. This makes it easier to switch databases, add caching, or mock data for unit tests.
+*   **Observation:** File I/O operations (reading rules, writing logs, accessing memory) are scattered directly within various scripts and the C++ application. This tightly couples the logic to a specific file format and directory structure.
+*   **Suggestion:** Introduce a dedicated set of scripts or C++ classes that act as a data access layer. This layer would be solely responsible for all interactions with the file system (e.g., `get_rule(id)`, `write_log(message)`). The core logic would call these functions instead of `cat`, `grep`, or `fopen` directly. This makes it easier to change file formats (e.g., from `.txt` to `.xml` or `.json`) or mock data for unit tests.
 
 ### 3. Consolidate Utility Functions
 
 *   **Observation:** Common helper functions, such as data formatters, validators, or constants, are either duplicated across different files or defined in places where they don't belong.
-*   **Suggestion:** Create a `utils/` directory to house all shared, reusable utility functions. This promotes code reuse and makes the helpers easier to find and maintain.
+*   **Suggestion:** Reinforce the use of `scripts/utils.sh` as the central location for all shared, reusable utility functions. This promotes code reuse and makes the helpers easier to find and maintain.
 
 ### 4. Feature-Based Module Structure
 
 *   **Observation:** The current structure is organized by function type (e.g., all routes in one place, all controllers in another).
-*   **Suggestion:** For larger applications, consider organizing by feature. For example, a `modules/` directory could contain subdirectories for `users`, `products`, etc. Each feature directory would contain its own routes, controllers, and services. This approach improves encapsulation and allows teams to work on features with greater autonomy.
+*   **Suggestion:** For larger applications, consider organizing by feature. For example, a `modules/` directory could contain subdirectories for `planning`, `ethics`, and `execution`. Each feature directory would contain its own scripts, rules, and test cases. This approach improves encapsulation and allows teams to work on features with greater autonomy.

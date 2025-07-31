@@ -13,13 +13,13 @@ This plan organizes tasks by directory and function, enabling modular implementa
   - Integrate priority selection logic in `interface/quantaporto_interface.cpp`.
 - **Output**: Map<string, int> of tasks with priority levels.
 
-### rules.txt
-- **Objective**: Define enforcement logic for rule violations.
+### rules.xml
+- **Objective**: Define enforcement logic for rule violations in a structured XML format.
 - **Tasks**:
   - Load and parse in `interface/quantaporto_interface.cpp`.
   - Match against logs or prompt outputs.
   - Trigger enforcement via `scripts/rule_enforcer.sh`.
-- **Output**: Rule list used during consequence evaluation.
+- **Output**: Parsed rule set used during consequence evaluation.
 
 ---
 
@@ -42,7 +42,7 @@ This plan organizes tasks by directory and function, enabling modular implementa
   - Load rules and priorities.
   - Monitor timeout marker.
   - Launch pipeline via `run_task.sh`.
-  - Log all decisions to `data/logs/interface.log`.
+  - Log all decisions to `logs/quantaporto.log`.
 - **Output**: Logged execution events and dynamic prompt control.
 
 ---
@@ -95,7 +95,7 @@ This plan organizes tasks by directory and function, enabling modular implementa
 ### rules.xsd
 - **Objective**: Schema for validating structured rule definitions.
 - **Tasks**:
-  - Validate `rules.txt` structure if upgraded to XML.
+  - Validate `rules.xml` structure.
   - Used by `validation_loop.sh`.
 - **Output**: Rule format integrity report.
 

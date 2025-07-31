@@ -70,7 +70,9 @@ detect_bias() {
     detect_implicit_bias "$text" violations
     
     # Method 3: Intersectional bias detection
-    detect_intersectional_bias "$text" violations
+    if [[ "${ENABLE_INTERSECTIONAL_CHECK}" == "true" ]]; then
+        detect_intersectional_bias "$text" violations
+    fi
     
     printf '%s\n' "${violations[@]}"
 }

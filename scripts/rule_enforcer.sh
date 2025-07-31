@@ -41,7 +41,8 @@ handle_consequence() {
 
     case "$consequence" in
         flag_for_review)
-            log_warn "Flagging for human review: $violation_type (Severity: $severity)" | tee -a "$LOG_FILE"
+            log_warn "Flagging for human review: $violation_type (Severity: $severity)"
+            append_to_log "RULE_ENFORCER: Flagged for review: $violation_type (Severity: $severity)"
             ;;
         reprompt)
             log_info "Re-prompting LLM for violation: $violation_type"

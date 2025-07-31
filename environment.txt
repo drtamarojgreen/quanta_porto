@@ -49,3 +49,7 @@ SELF_CHAT_LOG_FILE = logs/self_chat_log.txt
 PROJECT_GOALS_FILE = memory/project_goals.txt
 CURRENT_PROMPT_FILE = memory/current_prompt.txt
 CURRENT_RESPONSE_FILE = memory/current_response.txt
+
+# --- Behavior Flags ---
+LOG_LEVEL = INFO
+ENABLE_INTERSECTIONAL_CHECK = true

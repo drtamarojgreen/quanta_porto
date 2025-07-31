@@ -39,7 +39,9 @@ EOM
         -d "$JSON_PAYLOAD")
 
     echo "Response:"
-    echo "$RESPONSE"
+    #echo "$RESPONSE"
+    echo "$RESPONSE" | sed -n 's/.*"content"[[:space:]]*:[[:space:]]*"\(.*\)",.*/\1/p' | sed 's/\\"/"/g; s/\\n/\n/g'
+
 }
 
 # Main

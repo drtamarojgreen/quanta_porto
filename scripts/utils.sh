@@ -37,24 +37,37 @@ setup_env() {
 # Logs an informational message.
 # Usage: log_info "Your message here"
 log_info() {
-    echo "[INFO] $1"
+    # Only log if LOG_LEVEL is DEBUG or INFO
+    if [[ "${LOG_LEVEL:-INFO}" == "DEBUG" || "${LOG_LEVEL:-INFO}" == "INFO" ]]; then
+        echo "[INFO] $1"
+    fi
 }
 
 # Logs a warning message.
 # Usage: log_warn "Your message here"
 log_warn() {
-    echo "[WARN] $1" >&2
+    # Only log if LOG_LEVEL is DEBUG, INFO, or WARN
+    if [[ "${LOG_LEVEL:-INFO}" != "ERROR" ]]; then
+        echo "[WARN] $1" >&2
+    fi
 }
 
 # Logs an error message and exits.
 # Usage: log_error "Your message here"
 log_error() {
+    # Errors are always logged regardless of level
     echo "[ERROR] $1" >&2
     exit 1
 }
 
 
 # --- Dependency Checking ---
+
+# Appends a formatted message to the main application log file.
+# Usage: append_to_log "Component: Your message"
+append_to_log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
 
 # Checks for required command-line tools.
 # Usage: check_deps "tool1" "tool2"
