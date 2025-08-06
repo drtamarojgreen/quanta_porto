@@ -1,63 +1,75 @@
 #!/bin/bash
-# code_analysis.sh - Performs static analysis on the project's shell scripts.
+#
+# code_analysis.sh
+#
+# This script performs a comprehensive static analysis of the project's codebase
+# and generates a detailed report in Markdown format. It provides insights into
+# various aspects of the project's health, including test coverage, documentation
+# status, code cleanliness, and potential technical debt.
+#
+# The analysis includes:
+# - Counting automated tests (PQL, Ethics, BDD).
+# - Checking the status of the documentation directory.
+# - Identifying orphaned (untracked) files in the repository.
+# - Scanning for "TODO" comments in shell scripts.
+# - Finding files that are only referenced in the environment configuration.
+#
 
 set -euo pipefail
 IFS=$'\n\t'
 
-# Source utility functions
+# Source utility functions and environment variables
 source "$(dirname "$0")/utils.sh"
-
-# Setup environment to get variables like CODE_ANALYSIS_REPORT_FILE
 setup_env
 
-# Provide a default for the report file if not set in the environment
+# --- Configuration ---
+# Provide default paths for key files if they are not set in the environment.
 : "${CODE_ANALYSIS_REPORT_FILE:="memory/code_analysis_report.md"}"
 : "${PQL_TESTS_XML_FILE:="rules/pql_tests.xml"}"
 : "${ETHICS_AND_BIAS_TESTS_XML_FILE:="rules/ethics_and_bias_tests.xml"}"
- 
-# Check for required dependencies for the enhanced analysis
+
+# --- Dependency Check ---
 check_deps "git" "find" "grep" "wc" "stat"
- 
+
 # --- Analysis Functions ---
- 
+
+# Initializes the report file by clearing it and adding a header.
 generate_report_header() {
     log_info "Starting comprehensive code analysis..."
- 
-    # Ensure the report directory exists before trying to write to it.
     mkdir -p "$(dirname "$CODE_ANALYSIS_REPORT_FILE")"
- 
-    # Clear the previous report file and add a header
     {
         echo "# Code Analysis Report"
         echo "Generated on: $(date)"
         echo "---"
     } > "$CODE_ANALYSIS_REPORT_FILE"
 }
- 
+
+# Analyzes and reports the number of automated tests of different types.
 analyze_test_counts() {
     log_info "Analyzing test counts..."
- 
+
+    # Count PQL tests by looking for <test> tags in the XML file.
     local pql_test_count=0
     if [[ -f "$PQL_TESTS_XML_FILE" ]]; then
-        # Counts all direct children of the root element
-        pql_test_count=$( ( (grep "<test " "$PQL_TESTS_XML_FILE" | wc -l) || echo 0) | tail -n1)
+        pql_test_count=$(grep -c "<test " "$PQL_TESTS_XML_FILE" || echo 0)
     fi
- 
+
+    # Count ethics tests by looking for <task> tags in their XML file.
     local ethics_test_count=0
     if [[ -f "$ETHICS_AND_BIAS_TESTS_XML_FILE" ]]; then
-        ethics_test_count=$( ( (grep "<task " "$ETHICS_AND_BIAS_TESTS_XML_FILE" | wc -l) || echo 0) | tail -n1)
+        ethics_test_count=$(grep -c "<task " "$ETHICS_AND_BIAS_TESTS_XML_FILE" || echo 0)
     fi
- 
+
+    # Count BDD scenarios by finding all .feature files and counting "Scenario:" lines.
     local bdd_scenario_count=0
     local features_dir="$PRISM_QUANTA_ROOT/tests/bdd/features"
     if [[ -d "$features_dir" ]]; then
-        # Finds all .feature files, greps for Scenario lines, and counts them.
-        # The subshell with `|| true` prevents `grep` from exiting the script if no matches are found.
-        bdd_scenario_count=$( ( (find "$features_dir" -type f -name "*.feature" -print0 | xargs -0 --no-run-if-empty grep -E '^[[:space:]]*Scenario:' | wc -l) || echo 0) | tail -n1)
+        bdd_scenario_count=$(find "$features_dir" -type f -name "*.feature" -print0 | xargs -0 grep -c -E '^[[:space:]]*Scenario:' || echo 0)
     fi
- 
+
     local total_tests=$((pql_test_count + ethics_test_count + bdd_scenario_count))
- 
+
+    # Append the test metrics to the report.
     {
         echo "## Project Test Metrics"
         echo
@@ -69,21 +81,23 @@ analyze_test_counts() {
         echo "---"
     } >> "$CODE_ANALYSIS_REPORT_FILE"
 }
- 
+
+# Checks the last modification time of the documentation directory.
 analyze_docs_status() {
     log_info "Analyzing documentation status..."
-    local docs_dir="$PRISM_QUANTA_ROOT/docs" # Assuming docs directory is at the root
+    local docs_dir="$PRISM_QUANTA_ROOT/docs"
     local last_modified="Directory not found."
- 
+
     if [[ -d "$docs_dir" ]]; then
-        # This command for stat is for GNU/Linux. It might need adjustment for macOS/BSD.
+        # Use `stat` to get the last modification time. Note: The `-c %y` flag is for GNU/Linux.
+        # macOS/BSD would require a different flag, e.g., `stat -f %Sm`.
         if command -v stat &> /dev/null; then
             last_modified=$(stat -c %y "$docs_dir")
         else
             last_modified="stat command not found, cannot determine modification time."
         fi
     fi
- 
+
     {
         echo "## Documentation Status"
         echo
@@ -92,18 +106,18 @@ analyze_docs_status() {
         echo "---"
     } >> "$CODE_ANALYSIS_REPORT_FILE"
 }
- 
+
+# Finds all files in the repository that are not tracked by Git.
 analyze_orphaned_files() {
     log_info "Checking for orphaned (untracked) files..."
- 
-    # Use git to find untracked files, excluding those in .gitignore
+    # `git ls-files --others --exclude-standard` is the standard way to find untracked files.
     local orphaned_files
     orphaned_files=$(git ls-files --others --exclude-standard)
- 
+
     {
         echo "## Orphaned File Analysis"
         echo
-        if [[ -n "$orphaned_files" ]]; then
+        if [[ -n "$orphaned_files" ]];
             echo "Found untracked files. These might be temporary files, logs, or new files that need to be committed or added to \`.gitignore\`:"
             echo '```'
             echo "$orphaned_files"
@@ -115,21 +129,21 @@ analyze_orphaned_files() {
         echo "---"
     } >> "$CODE_ANALYSIS_REPORT_FILE"
 }
- 
+
+# Scans all shell scripts for "TODO" comments and lists them in the report.
 analyze_todos() {
     log_info "Scanning for TODO comments in shell scripts..."
- 
     {
         echo "## TODOs in Scripts"
         echo
     } >> "$CODE_ANALYSIS_REPORT_FILE"
- 
+
     local found_any_todos=false
-    # Find all shell scripts, excluding .git, and grep for TODOs
+    # Use `find` to locate all .sh files, then pipe them to a while loop for processing.
     find "$PRISM_QUANTA_ROOT" -type f -name "*.sh" -not -path "*/.git/*" -print0 | while IFS= read -r -d '' script_file; do
         local relative_path="${script_file#$PRISM_QUANTA_ROOT/}"
- 
-        # The `|| true` prevents the script from exiting if grep finds no matches.
+
+        # `grep -n` includes the line number in the output.
         if todo_findings=$(grep -n "TODO" "$script_file" || true); then
             if [[ -n "$todo_findings" ]]; then
                 found_any_todos=true
@@ -143,36 +157,30 @@ analyze_todos() {
             fi
         fi
     done
- 
+
     if [[ "$found_any_todos" == "false" ]]; then
-        {
-            echo "No TODO comments found in any shell scripts."
-            echo
-        } >> "$CODE_ANALYSIS_REPORT_FILE"
+        echo "No TODO comments found in any shell scripts." >> "$CODE_ANALYSIS_REPORT_FILE"
     fi
+     echo >> "$CODE_ANALYSIS_REPORT_FILE"
 }
+# Identifies files defined in `environment.txt` that are not referenced anywhere else.
 analyze_environment_only_references() {
     log_info "Checking for files only referenced in environment.txt..."
-
     {
         echo "## Environment File Reference Analysis"
         echo
     } >> "$CODE_ANALYSIS_REPORT_FILE"
 
-    # A more robust way to extract file paths from environment.txt
-    # This looks for keys ending in _FILE or _PATH, then extracts the value.
-    # It handles spaces around the '=' and trims whitespace from the value.
+    # Extract all file paths from environment.txt.
+    # This regex looks for keys ending in _FILE or _PATH and extracts their values.
     local config_files
     config_files=$(grep -E '^[^#]*(_FILE|_PATH)[[:space:]]*=' "$PRISM_QUANTA_ROOT/environment.txt" | \
                    sed -e 's/.*=[[:space:]]*//' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' | \
-                   grep -v -E '^\.$' || true) # Exclude lines that are just a dot
+                   grep -v -E '^\.$' || true)
 
     if [[ -z "$config_files" ]]; then
-        {
-            echo "No file paths found in \`environment.txt\` to analyze."
-            echo
-            echo "---"
-        } >> "$CODE_ANALYSIS_REPORT_FILE"
+        echo "No file paths found in \`environment.txt\` to analyze." >> "$CODE_ANALYSIS_REPORT_FILE"
+        echo -e "\n---" >> "$CODE_ANALYSIS_REPORT_FILE"
         return
     fi
 
@@ -181,19 +189,13 @@ analyze_environment_only_references() {
     all_tracked_files=$(git ls-files)
 
     for file_path in $config_files; do
-        # Ensure the file exists before checking for references
-        if [[ ! -f "$PRISM_QUANTA_ROOT/$file_path" ]]; then
-            continue
-        fi
+        [[ -f "$PRISM_QUANTA_ROOT/$file_path" ]] || continue # Skip if the file doesn't exist
 
         local file_basename
         file_basename=$(basename "$file_path")
 
-        # Search for the file's basename in all tracked files, excluding environment.txt
-        # We use the basename because it's the most likely way a file would be referenced in a script.
-        # The `grep -v` ensures we don't search in environment.txt itself.
-        # `xargs` handles the list of files to search in.
-        # `grep -Fq` searches for fixed strings quietly.
+        # Search for the file's basename in all tracked files, excluding environment.txt itself.
+        # `grep -Fq` performs a quiet, fixed-string search.
         if ! echo "$all_tracked_files" | grep -v "environment.txt" | xargs -r --no-run-if-empty grep -Fq "$file_basename"; then
             lonely_files+="- \`$file_path\`\n"
         fi
@@ -206,17 +208,14 @@ analyze_environment_only_references() {
             echo -e "$lonely_files"
         } >> "$CODE_ANALYSIS_REPORT_FILE"
     else
-        {
-            echo "All file paths defined in \`environment.txt\` appear to be referenced elsewhere in the codebase."
-            echo
-        } >> "$CODE_ANALYSIS_REPORT_FILE"
+        echo "All file paths defined in \`environment.txt\` appear to be referenced elsewhere in the codebase." >> "$CODE_ANALYSIS_REPORT_FILE"
     fi
 
     echo "---" >> "$CODE_ANALYSIS_REPORT_FILE"
 }
- 
+
 # --- Main Execution ---
- 
+
 main() {
     generate_report_header
     analyze_test_counts
@@ -226,5 +225,5 @@ main() {
     analyze_environment_only_references
     log_info "Code analysis complete. Report saved to: $CODE_ANALYSIS_REPORT_FILE"
 }
- 
+
 main "$@"

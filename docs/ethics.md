@@ -74,11 +74,10 @@ Since this is a Windows environment, you'll need to run the scripts through a ba
 - Cygwin
 - MSYS2
 
-### Making Scripts Executable (Linux/Mac/WSL)
+### Script Permissions
+The shell scripts in this project are checked into the repository with execute permissions. If you encounter a "Permission denied" error, you can restore the permissions with the following command:
 ```bash
-chmod +x scripts/ethics_bias_checker.sh
-chmod +x scripts/enhanced_task_manager.sh
-chmod +x tests/bdd/enhanced_test_runner.sh
+chmod +x scripts/*.sh tests/bdd/*.sh
 ```
 
 ## Usage Guide
@@ -86,15 +85,17 @@ chmod +x tests/bdd/enhanced_test_runner.sh
 ### 1. Ethics and Bias Checker
 
 #### Basic Usage
+The `ethics_bias_checker.sh` script can process text from a command-line argument or from standard input (pipe).
+
 ```bash
-# Check text for bias violations
+# Check text from an argument
 ./scripts/ethics_bias_checker.sh --text "Your text here"
 
-# Check file content
-./scripts/ethics_bias_checker.sh --file input.txt
+# Check content piped from another command
+echo "Your text here" | ./scripts/ethics_bias_checker.sh
 
 # Get JSON output for integration
-./scripts/ethics_bias_checker.sh --text "Your text here" --json
+echo "Your text here" | ./scripts/ethics_bias_checker.sh --json
 ```
 
 #### Example Output
@@ -116,24 +117,15 @@ chmod +x tests/bdd/enhanced_test_runner.sh
 ### 2. Enhanced Task Manager
 
 #### Basic Usage
+The `enhanced_task_manager.sh` script takes a prompt as input from the command line or standard input.
+
 ```bash
-# Run with default settings
-./scripts/enhanced_task_manager.sh
+# Run with a prompt from an argument
+./scripts/enhanced_task_manager.sh "Your prompt here"
 
-# Enable strict ethics mode (zero tolerance)
-./scripts/enhanced_task_manager.sh --ethics-strict
-
-# Set custom bias threshold
-./scripts/enhanced_task_manager.sh --bias-threshold 8
-
-# Disable automatic bias mitigation
-./scripts/enhanced_task_manager.sh --disable-bias-mitigation
+# Run with a prompt piped from another command
+echo "Your prompt here" | ./scripts/enhanced_task_manager.sh
 ```
-
-#### Configuration Options
-- `--ethics-strict`: Enable zero-tolerance ethics mode
-- `--bias-threshold N`: Set severity threshold (default: 5)
-- `--disable-bias-mitigation`: Disable automatic mitigation prompts
 
 ### 3. BDD Testing
 
@@ -147,12 +139,6 @@ cd tests/bdd
 
 # Run with verbose output
 ./enhanced_test_runner.sh --verbose
-
-# Run only ethics-related tests
-./enhanced_test_runner.sh --filter "ethics"
-
-# Run tests in parallel
-./enhanced_test_runner.sh --parallel --jobs 4
 ```
 
 #### Test Categories
@@ -163,19 +149,18 @@ cd tests/bdd
 
 ## Configuration Files
 
-### 1. Enhanced Ethics Rules (`config/ethics_rules.txt`)
-Defines enforcement logic with enhanced format:
+### 1. Enhanced Ethics Rules (`rules/ethics_rules.csv`)
+Defines enforcement logic with a pipe-delimited format:
 ```
-rule_id|condition|consequence|severity|mitigation_strategy
+rule_id|severity|condition|consequences
 ```
 
 Example:
 ```
-gender_stereotype_male|output contains "men are better at"|flag_for_review|high|gender_neutral_language
-racial_stereotype|output contains "all [race] people"|immediate_timeout|critical|cultural_sensitivity_training
+bias_detection|high|toxic_language|reprompt,flag_for_review
 ```
 
-### 2. Bias Patterns (`config/bias_patterns.txt`)
+### 2. Bias Patterns (`rules/bias_patterns.txt`)
 Auto-generated file containing detailed bias detection patterns:
 ```
 # Gender Bias Patterns
@@ -209,9 +194,8 @@ End-to-end scenarios covering:
 ## Monitoring and Logging
 
 ### Log Files
-- **`logs/ethics_violations.log`**: Detailed ethics violation records
-- **`logs/bias_violations.log`**: Bias-specific violation tracking
-- **`tests/results/test_report.txt`**: BDD test execution reports
+- **`$ETHICS_LOG`**: Detailed ethics and bias violation records. The path is defined in `environment.txt`.
+- **`tests/results/test_report.txt`**: BDD test execution reports.
 
 ### Log Format
 ```
@@ -256,15 +240,15 @@ End-to-end scenarios covering:
 ## Customization and Extension
 
 ### Adding New Bias Patterns
-1. Edit `config/bias_patterns.txt`
+1. Edit `rules/bias_patterns.txt`
 2. Add patterns in format: `category|pattern1|pattern2|pattern3`
-3. Update corresponding rules in `config/ethics_rules.txt`
+3. Update corresponding rules in `rules/ethics_rules.csv`
 4. Add BDD test scenarios for new patterns
 
 ### Custom Mitigation Strategies
-1. Extend `generate_mitigation_prompt()` function in enhanced task manager
-2. Add new mitigation types to ethics rules configuration
-3. Create corresponding test scenarios
+1. Extend the `handle_consequence` function in `scripts/rule_enforcer.sh`.
+2. Add new consequence types to `rules/ethics_rules.csv`.
+3. Create corresponding test scenarios.
 
 ### Industry-Specific Configurations
 1. Create custom bias pattern files for specific domains

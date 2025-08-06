@@ -34,19 +34,29 @@ quantaporto/
 │   ├── pql_sample.xml
 │   └── rules.xsd
 ├── scripts/
+│   ├── check_server_status.sh
+│   ├── code_analysis.sh
 │   ├── define_requirements.sh
+│   ├── dev_team_test.sh
 │   ├── enhanced_task_manager.sh
-│   ├── memory_review.sh
+│   ├── ethics_bias_checker.sh
+│   ├── ethics_monitor.sh
+│   ├── generate_prompt.sh
+│   ├── llm_infer.sh
+│   ├── llm_infer_server.sh
 │   ├── parse_pql.sh
 │   ├── plan_code_tasks.sh
-│   ├── pql_test_and_consequence.sh
+│   ├── polling.sh
+│   ├── quantaporto_daemon.sh
+│   ├── quantaporto_worker.sh
 │   ├── rule_enforcer.sh
-│   ├── run_planner.sh
-│   ├── run_task.sh
+│   ├── run_inference.sh
+│   ├── run_pql_tests.sh
 │   ├── self_chat_loop.sh
+│   ├── send_prompt.sh
 │   ├── strategize_project.sh
-│   ├── task_manager.sh
-│   └── validation_loop.sh
+│   ├── test_server.sh
+│   └── utils.sh
 ├── .timeout
 ├── main
 ├── quantaporto_interface
