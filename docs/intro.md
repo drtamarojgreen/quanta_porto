@@ -35,11 +35,8 @@ QuantaPorto runs entirely **offline**. It respects user privacy, avoids external
 
 ```
 .
-├── config/             # Configuration files (rules, priorities)
 ├── docs/               # Project documentation
 ├── interface/          # C++ interface for LLM interaction
-├── logs/               # Session and error logs
-├── memory/             # Long-term memory and learning data
 ├── prompts/            # System and user prompt templates
 ├── rules/              # PQL and ethics rule definitions (XML, XSD)
 ├── scripts/            # Core automation and task execution scripts
@@ -47,6 +44,6 @@ QuantaPorto runs entirely **offline**. It respects user privacy, avoids external
 │   └── bdd/
 │       ├── features/
 │       └── step_definitions.sh
-├── main                # Main executable script
-└── ...
+├── environment.txt     # Main configuration file
+└── README.md
 ```

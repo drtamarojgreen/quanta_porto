@@ -1,19 +1,30 @@
 #!/bin/bash
-# quantaporto_worker.sh - Translates a single PQL task XML file into an executable script.
+#
+# quantaporto_worker.sh
+#
+# This script is responsible for processing a single PQL task file. It is invoked
+# by the quantaporto_daemon.sh script. Its primary job is to parse the task's XML file,
+# extract the task ID and a series of commands, and then generate a new, executable
+# shell script in the 'actions pending' directory.
+#
+# This generated script contains the commands to be executed for the given task.
+#
 
 set -euo pipefail
 IFS=$'\n\t'
 
-# Source environment using a robust method
+# Source common utilities and environment variables
 source "$(dirname "${BASH_SOURCE[0]}")/utils.sh"
 setup_env
 
 # --- Input Validation ---
+# The script requires exactly one argument: the path to the task XML file.
 if [[ -z "${1:-}" ]]; then
     log_error "Usage: $0 <path_to_task_xml>"
     exit 1
 fi
 TASK_FILE="$1"
+# Ensure the provided file path points to an actual file.
 if [[ ! -f "$TASK_FILE" ]]; then
     log_error "Task file not found: $TASK_FILE"
     exit 1
@@ -21,8 +32,13 @@ fi
 
 # --- Logic ---
 
-# 1. Parse Task ID from the XML file. Example: <task id="some-id">
-# We use grep with -o to extract only the matching part, then sed to capture the group.
+# 1. Parse the Task ID from the XML file.
+#    - `grep -o 'id="[^"]*"'`: Searches the task file for the pattern 'id="..."'.
+#      The '-o' flag ensures that only the matching part of the line (e.g., id="some-id") is printed.
+#    - `sed 's/id="\([^"]*\)"/\1/'`: Takes the output from grep and uses a regular expression
+#      to capture the value inside the double quotes. It then replaces the entire string
+#      with just the captured group (the ID itself).
+#    Example: <task id="some-id"> -> "some-id"
 TASK_ID=$(grep -o 'id="[^"]*"' "$TASK_FILE" | sed 's/id="\([^"]*\)"/\1/')
 if [[ -z "$TASK_ID" ]]; then
     log_error "Could not parse task ID from $TASK_FILE"
@@ -30,18 +46,25 @@ if [[ -z "$TASK_ID" ]]; then
 fi
 log_info "QuantaPorto Worker: Processing task $TASK_ID..."
 
-# 2. Parse commands from the XML file. Example: <command>do something</command>
-# We use grep to find the lines, then sed to strip the tags and leading/trailing whitespace.
+# 2. Parse all commands from the XML file.
+#    - `grep '<command>'`: Finds all lines containing the <command> tag.
+#    - `sed -e 's/...' -e 's/...'`: Executes two substitution commands:
+#      a. `s/^[[:space:]]*<command>//`: Removes the opening <command> tag and any leading whitespace.
+#      b. `s/<\/command>[[:space:]]*$//`: Removes the closing </command> tag and any trailing whitespace.
+#    The result is a newline-separated string of the raw commands.
+#    Example: <command>do something</command> -> "do something"
 COMMANDS=$(grep '<command>' "$TASK_FILE" | sed -e 's/^[[:space:]]*<command>//' -e 's/<\/command>[[:space:]]*$//')
 
 if [[ -z "$COMMANDS" ]]; then
     log_warn "No commands found for task $TASK_ID. Creating an empty action script."
 fi
 
-# 3. Create the output script in the pending actions directory
+# 3. Create the output script in the 'actions pending' directory.
+#    The script is named using the Task ID to ensure a unique filename.
 ACTION_SCRIPT_PATH="${ACTIONS_PENDING_DIR}/${TASK_ID}.sh"
 
-# Write the script header
+# Write the script header using a block to redirect all output to the new file.
+# This is more efficient than using individual redirects for each 'echo'.
 {
     echo "#!/bin/bash"
     echo "# Action script for task: $TASK_ID"
@@ -51,10 +74,10 @@ ACTION_SCRIPT_PATH="${ACTIONS_PENDING_DIR}/${TASK_ID}.sh"
     echo ""
 } > "$ACTION_SCRIPT_PATH"
 
-# Append the extracted commands
+# Append the extracted commands to the new script.
 echo "$COMMANDS" >> "$ACTION_SCRIPT_PATH"
 
-# Make the script executable
+# Make the generated script executable so it can be run by other processes.
 chmod +x "$ACTION_SCRIPT_PATH"
 
 log_info "Successfully created action script: $ACTION_SCRIPT_PATH"

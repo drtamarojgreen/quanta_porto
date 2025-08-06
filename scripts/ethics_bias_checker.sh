@@ -1,17 +1,34 @@
 #!/bin/bash
-# ethics_bias_checker.sh - Advanced ethics and bias detection system
-# Integrates into the QuantaPorto pipeline for real-time monitoring
+#
+# ethics_bias_checker.sh
+#
+# This script provides an advanced system for detecting ethics and bias issues in text.
+# It can be used as a standalone tool or integrated into a content pipeline. The script
+# analyzes text for various types of bias (gender, racial, age, etc.) using multiple
+# methods, including pattern matching, contextual analysis for implicit bias, and
+# intersectional bias detection.
+#
+# It can output results in human-readable text or structured JSON format.
+#
+# Main features:
+# - Creates and uses a customizable file of bias patterns.
+# - Detects explicit and implicit bias.
+# - Optionally checks for intersectional bias (e.g., bias against black women).
+# - Calculates a severity score for detected violations.
+# - Generates actionable mitigation suggestions.
+# - Logs detailed findings for auditing and review.
+#
 
 set -euo pipefail
 IFS=$'\n\t'
 
-# Source utility functions
+# Source utility functions and environment variables
 source "$(dirname "$0")/utils.sh"
-
-# Setup environment
 setup_env
 
-# Create bias patterns file if it doesn't exist
+# Creates a default bias patterns file if one does not already exist.
+# This file contains pipe-delimited patterns for various bias categories.
+# It is designed to be easily customized and extended.
 create_bias_patterns() {
     if [[ ! -f "$BIAS_PATTERNS_FILE" ]]; then
         mkdir -p "$(dirname "$BIAS_PATTERNS_FILE")"
@@ -45,28 +62,35 @@ EOF
     fi
 }
 
-# Enhanced bias detection using multiple methods
+# Orchestrates the bias detection process by calling multiple detection methods.
+#
+#   $1: The input text to analyze.
+#
+# Returns a newline-separated list of detected violations.
 detect_bias() {
     local text="$1"
     local violations=()
     
-    # Method 1: Pattern matching from bias_patterns.txt
+    # Method 1: Direct pattern matching from the bias patterns file.
+    # This is effective for catching explicit and obvious bias.
     while IFS='|' read -r category pattern_list; do
-        [[ "$category" =~ ^#.*$ ]] && continue  # Skip comments
+        [[ "$category" =~ ^#.*$ ]] && continue  # Skip comment lines
         [[ -z "$category" ]] && continue        # Skip empty lines
         
         IFS='|' read -ra patterns <<< "$pattern_list"
         for pattern in "${patterns[@]}"; do
+            # `grep -qi` performs a case-insensitive search
             if echo "$text" | grep -qi "$pattern"; then
                 violations+=("$category:$pattern")
             fi
         done
     done < "$BIAS_PATTERNS_FILE"
     
-    # Method 2: Contextual analysis for implicit bias
+    # Method 2: Contextual analysis to find more subtle, implicit bias.
     detect_implicit_bias "$text" violations
     
-    # Method 3: Intersectional bias detection
+    # Method 3: Intersectional analysis, if enabled via environment variable.
+    # This looks for combinations of identities and biased language.
     if [[ "${ENABLE_INTERSECTIONAL_CHECK}" == "true" ]]; then
         detect_intersectional_bias "$text" violations
     fi
@@ -74,35 +98,42 @@ detect_bias() {
     printf '%s\n' "${violations[@]}"
 }
 
-# Detect implicit bias through contextual analysis
+# Detects implicit bias by looking for contextual clues and coded language.
+#
+#   $1: The input text to analyze.
+#   $2: A reference to the array where violations should be stored.
 detect_implicit_bias() {
     local text="$1"
-    local -n violations_ref=$2
+    local -n violations_ref=$2 # Use a nameref for direct modification of the caller's array
     
-    # Check for implicit assumptions
+    # Check for language that presents opinions as universal facts, often masking gender bias.
     if echo "$text" | grep -qi "obviously\|clearly\|everyone knows\|it's natural that"; then
         if echo "$text" | grep -qi "men\|women\|boys\|girls\|masculine\|feminine"; then
             violations_ref+=("implicit_gender_bias:assumption_language")
         fi
     fi
     
-    # Check for coded language
+    # Check for coded language, like describing a Black person as "articulate,"
+    # which can imply surprise and underlying bias.
     if echo "$text" | grep -qi "articulate\|well-spoken" && echo "$text" | grep -qi "black\|african"; then
         violations_ref+=("coded_language:articulate_assumption")
     fi
     
-    # Check for cultural assumptions
+    # Check for assumptions of cultural "normalcy."
     if echo "$text" | grep -qi "normal\|standard\|typical" && echo "$text" | grep -qi "family\|culture\|tradition"; then
         violations_ref+=("cultural_bias:normative_assumptions")
     fi
 }
 
-# Detect intersectional bias (multiple identity categories)
+# Detects intersectional bias by checking for combinations of identity markers
+# and common biased descriptors.
+#
+#   $1: The input text to analyze.
+#   $2: A reference to the violations array.
 detect_intersectional_bias() {
     local text="$1"
     local -n violations_ref=$2
     
-    # Check for combinations that might indicate intersectional bias
     local identity_markers=("woman" "women" "black" "hispanic" "asian" "disabled" "gay" "lesbian" "transgender" "muslim" "jewish" "elderly" "young")
     local bias_indicators=("aggressive" "emotional" "irrational" "threatening" "exotic" "submissive" "model minority")
     
@@ -115,7 +146,12 @@ detect_intersectional_bias() {
     done
 }
 
-# Calculate bias severity score
+# Calculates a numerical severity score based on the types of violations found.
+# More severe violations (e.g., racial stereotypes) contribute more to the score.
+#
+#   $@: A list of violation strings.
+#
+# Returns the total score.
 calculate_severity() {
     local violations=("$@")
     local score=0
@@ -132,7 +168,7 @@ calculate_severity() {
                 score=$((score + 5))
                 ;;
             *)
-                score=$((score + 3))
+                score=$((score + 3)) # Default for less specific violations
                 ;;
         esac
     done
@@ -140,7 +176,11 @@ calculate_severity() {
     echo "$score"
 }
 
-# Generate mitigation suggestions
+# Generates actionable suggestions for mitigating the detected biases.
+#
+#   $@: A list of violation strings.
+#
+# Returns a unique, sorted list of suggestions.
 generate_mitigation() {
     local violations=("$@")
     local suggestions=()
@@ -148,58 +188,62 @@ generate_mitigation() {
     for violation in "${violations[@]}"; do
         case "$violation" in
             *gender_stereotype*)
-                suggestions+=("Consider using gender-neutral language and avoiding assumptions about gender roles")
+                suggestions+=("Consider using gender-neutral language and avoiding assumptions about gender roles.")
                 ;;
             *racial_stereotype*)
-                suggestions+=("Avoid generalizations about racial or ethnic groups; focus on individual characteristics")
+                suggestions+=("Avoid generalizations about racial or ethnic groups; focus on individual characteristics.")
                 ;;
             *ageism*)
-                suggestions+=("Consider age-inclusive language that doesn't make assumptions about capabilities based on age")
+                suggestions+=("Consider age-inclusive language that doesn't make assumptions about capabilities based on age.")
                 ;;
             *ableism*)
-                suggestions+=("Use person-first language and avoid terms that stigmatize disabilities")
+                suggestions+=("Use person-first language and avoid terms that stigmatize disabilities.")
                 ;;
             *implicit_bias*)
-                suggestions+=("Question assumptions and consider alternative perspectives")
+                suggestions+=("Question underlying assumptions and consider alternative perspectives.")
                 ;;
             *intersectional_bias*)
-                suggestions+=("Be aware of how multiple identity factors may compound bias effects")
+                suggestions+=("Be aware of how multiple identity factors can compound bias effects and stereotypes.")
                 ;;
         esac
     done
     
+    # `sort -u` ensures the final suggestions are unique and alphabetized.
     printf '%s\n' "${suggestions[@]}" | sort -u
 }
 
-# Main ethics and bias checking function
+# Main analysis function that ties everything together.
+#
+#   $1: The input text to check.
+#   $2: The desired output format ("json" or "text").
 check_ethics_and_bias() {
     local input_text="$1"
     local output_format="${2:-json}"
     
     create_bias_patterns
     
-    # Detect violations
+    # Detect violations and read them into an array.
+    # `mapfile` (or `readarray`) is a robust way to read lines into an array.
     local violations
     mapfile -t violations < <(detect_bias "$input_text")
 
+    # If no violations are found, output a success message and exit.
     if [[ ${#violations[@]} -eq 0 ]]; then
         if [[ "$output_format" == "json" ]]; then
             echo '{"status": "pass", "violations": [], "severity_score": 0, "suggestions": []}'
         else
-            echo "PASS: No ethics or bias violations detected"
+            echo "PASS: No ethics or bias violations detected."
         fi
         return 0
     fi
 
-    # Calculate severity for logging purposes
     local severity_score
     severity_score=$(calculate_severity "${violations[@]}")
 
-    # Generate suggestions
     local suggestions
     mapfile -t suggestions < <(generate_mitigation "${violations[@]}")
     
-    # Log violations
+    # Log the findings if logging is enabled.
     if [[ "${ENABLE_ETHICS_LOGGING:-true}" == "true" ]]; then
         mkdir -p "$(dirname "$ETHICS_LOG")"
         {
@@ -212,19 +256,16 @@ check_ethics_and_bias() {
         } >> "$ETHICS_LOG"
     fi
     
-    # Output results
+    # Output results in the requested format.
     if [[ "$output_format" == "json" ]]; then
+        # Manually construct JSON to avoid extra dependencies like jq for output.
         printf '{\n'
         printf '  "status": "fail",\n'
         printf '  "violations": [\n'
         for i in "${!violations[@]}"; do
-            local escaped_violation="${violations[$i]//\"/\\\"}"
+            local escaped_violation="${violations[$i]//\"/\\\"}" # Escape quotes for valid JSON
             printf '    "%s"' "$escaped_violation"
-            if [[ $i -lt $((${#violations[@]} - 1)) ]]; then
-                printf ',\n'
-            else
-                printf '\n'
-            fi
+            (( i < ${#violations[@]} - 1 )) && printf ',\n' || printf '\n'
         done
         printf '  ],\n'
         printf '  "severity_score": %s,\n' "$severity_score"
@@ -232,19 +273,15 @@ check_ethics_and_bias() {
         for i in "${!suggestions[@]}"; do
             local escaped_suggestion="${suggestions[$i]//\"/\\\"}"
             printf '    "%s"' "$escaped_suggestion"
-            if [[ $i -lt $((${#suggestions[@]} - 1)) ]]; then
-                printf ',\n'
-            else
-                printf '\n'
-            fi
+            (( i < ${#suggestions[@]} - 1 )) && printf ',\n' || printf '\n'
         done
         printf '  ]\n'
         printf '}\n'
     else
-        echo "FAIL: Ethics/bias violations detected"
+        echo "FAIL: Ethics/bias violations detected."
         echo "Violations:"
         printf '  - %s\n' "${violations[@]}"
-        echo "Severity Score: $severity_score"
+        echo "Severity Score: $score"
         echo "Suggestions:"
         printf '  - %s\n' "${suggestions[@]}"
     fi
@@ -252,7 +289,8 @@ check_ethics_and_bias() {
     return 1
 }
 
-# Command line interface
+# Command-line interface for the script.
+# Parses arguments for input text/file and output format.
 main() {
     local input_text=""
     local output_format="text"
@@ -288,28 +326,25 @@ main() {
         esac
     done
     
+    # If no input text is provided via arguments, try reading from stdin.
     if [[ -z "$input_text" ]]; then
-        # If no input is provided and stdin is a terminal, show help and exit.
+        # If stdin is a terminal (not a pipe), show an error instead of hanging.
         if [[ -t 0 ]]; then
             echo "Error: No input text provided. Waiting for input from stdin would cause the script to hang." >&2
             echo "Please provide input via -t, -f, or a pipe." >&2
             echo >&2
-            # Manually print help text to avoid calling main recursively and exiting with 0
+            # Manually print help text to avoid calling main recursively.
             echo "Usage: $0 [-t|--text TEXT] [-f|--file FILE] [--json]" >&2
-            echo "  -t, --text TEXT    Text to check for ethics/bias violations" >&2
-            echo "  -f, --file FILE    File containing text to check" >&2
-            echo "  --json             Output results in JSON format" >&2
-            echo "  -h, --help         Show this help message" >&2
             exit 1
         fi
-        # Read from stdin if no text provided (e.g., from a pipe)
+        # Read from stdin (e.g., from a pipe).
         input_text=$(cat)
     fi
     
     check_ethics_and_bias "$input_text" "$output_format"
 }
 
-# Run main function if script is executed directly
+# Run the main function if the script is executed directly.
 if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
     main "$@"
 fi

@@ -103,96 +103,156 @@ This plan organizes tasks by directory and function, enabling modular implementa
 
 ## scripts/
 
-### define_requirements.sh
-- **Objective**: Generate requirements.md from discussion or memory input.
+### check_server_status.sh
+- **Objective**: Verify that the LLM server is running and reachable.
 - **Tasks**:
-  - Pull latest input from memory.
-  - Save to `memory/requirements.md`.
-- **Output**: Fresh planning anchor for `plan_code_tasks.sh`.
+  - Send a request to the server's root URL.
+  - Report status and exit with an error if the server is unreachable.
+- **Output**: A status message indicating if the server is running.
+
+### code_analysis.sh
+- **Objective**: Perform static analysis on the project's shell scripts.
+- **Tasks**:
+  - Count tests, check documentation status, find orphaned files, and scan for TODOs.
+- **Output**: A Markdown report with the analysis results.
+
+### define_requirements.sh
+- **Objective**: Generate a list of requirements from a strategy plan.
+- **Tasks**:
+  - Read a strategy plan file.
+  - Use the LLM to generate a list of requirements.
+- **Output**: A file containing the generated requirements.
+
+### dev_team_test.sh
+- **Objective**: Test the LLM's ability to simulate a developer team.
+- **Tasks**:
+  - Send a multi-role chat prompt to the LLM server.
+  - Parse and display the assistant's response.
+- **Output**: The LLM's response to the prompt.
 
 ### enhanced_task_manager.sh
-- **Objective**: Advanced runner for scheduled tasks.
+- **Objective**: An advanced runner for tasks that require LLM inference and ethics checking.
 - **Tasks**:
-  - Integrate priority logic.
-  - Trigger prompts, evaluate results, log outcomes.
-- **Output**: Logged task execution status.
+  - Run LLM inference.
+  - Perform an ethics and bias check on the output.
+  - Trigger the rule enforcer and retry if the check fails.
+- **Output**: The successful output from the LLM.
 
-### memory_review.sh
-- **Objective**: Reflect on memory contents for strategy updates.
+### ethics_bias_checker.sh
+- **Objective**: Detect ethics and bias issues in text.
 - **Tasks**:
-  - Extract insights from `memory/*.txt`.
-  - Feed into `strategize_project.sh`.
-- **Output**: Summary of actionable development context.
+  - Analyze text for various types of bias using multiple methods.
+  - Calculate a severity score and generate mitigation suggestions.
+- **Output**: A JSON or text report of the findings.
+
+### ethics_monitor.sh
+- **Objective**: Continuously monitor LLM output for ethics violations.
+- **Tasks**:
+  - Tail a specified output file.
+  - Check each new line against a set of ethics rules.
+  - Invoke the rule enforcer if a violation is found.
+- **Output**: Logs of any detected violations.
+
+### generate_prompt.sh
+- **Objective**: Assemble a structured LLM prompt from a PQL task.
+- **Tasks**:
+  - Extract a task's description, commands, and criteria from a PQL file.
+  - Combine them with document content piped via stdin.
+- **Output**: A formatted prompt ready to be sent to an LLM.
+
+### llm_infer.sh
+- **Objective**: (Empty script)
+
+### llm_infer_server.sh
+- **Objective**: Send a prompt to a running LLM server for inference.
+- **Tasks**:
+  - Construct a JSON payload with the prompt and parameters.
+  - Send the payload to the server and parse the response.
+- **Output**: The generated text content from the LLM.
 
 ### parse_pql.sh
-- **Objective**: Validate and interpret PQL commands.
+- **Objective**: Parse and validate PQL task files.
 - **Tasks**:
-  - Use `pql.xsd` to validate `pql_sample.xml`.
-  - Parse tasks and route to engine.
-- **Output**: Confirmed PQL command set.
+  - List tasks, extract commands or criteria, and validate the XML file against its schema.
+- **Output**: The requested information from the PQL file.
 
 ### plan_code_tasks.sh
-- **Objective**: Convert requirements.md into executable task plan.
+- **Objective**: A multi-stage pipeline for planning development tasks.
 - **Tasks**:
-  - Read `memory/requirements.md`.
-  - Use LLM via `llm_infer.sh` to generate prioritized tasks.
-  - Flag ambiguous tasks and revise.
-- **Output**: `memory/task_list_final.txt` and optional revisions.
+  - Use an LLM to break requirements into tasks, prioritize them, and revise them.
+- **Output**: A prioritized and verified list of tasks.
 
-### pql_test_and_consequence.sh
-- **Objective**: Check task outputs against rulebook and apply consequences.
+### polling.sh
+- **Objective**: A command runner that executes a command in the background.
 - **Tasks**:
-  - Run post-task validations.
-  - Call `rule_enforcer.sh` if violations detected.
-- **Output**: Log of rule enforcement decisions.
+  - Display a "thinking" indicator while the command runs.
+  - Capture and print the command's output.
+- **Output**: The output of the executed command.
+
+### quantaporto_daemon.sh
+- **Objective**: A daemon that monitors a queue and dispatches tasks.
+- **Tasks**:
+  - Move tasks from the pending queue to the in-progress queue.
+  - Invoke the worker script to process the task.
+- **Output**: Logs of its activities.
+
+### quantaporto_worker.sh
+- **Objective**: Process a single PQL task file.
+- **Tasks**:
+  - Parse a task's XML file to extract the task ID and commands.
+  - Generate an executable shell script for the task.
+- **Output**: An executable shell script.
 
 ### rule_enforcer.sh
-- **Objective**: Handle violations by redirecting task flow.
+- **Objective**: Enforce actions based on rule violations.
 - **Tasks**:
-  - Switch active prompts based on rule triggers.
-  - Log action and violation type.
-- **Output**: Updated `prompts/input_prompt.txt`.
+  - Look up a violation in the ethics rules file.
+  - Trigger one or more consequences.
+- **Output**: Logs of the actions taken.
 
-### run_planner.sh
-- **Objective**: End-to-end planner invoker.
-- **Tasks**:
-  - Run requirement parser, planner, validator, and scheduler.
-- **Output**: Comprehensive updated task list and revised prompts.
+### run_inference.sh
+- **Objective**: (Empty script)
 
-### run_task.sh
-- **Objective**: Main pipeline for executing task based on prompt.
+### run_pql_tests.sh
+- **Objective**: A test-and-remediate cycle for the LLM.
 - **Tasks**:
-  - Read `input_prompt.txt`.
-  - Feed prompt to engine.
-  - Log result and analyze.
-- **Output**: Task result stored or validated.
+  - Run PQL and ethics tests.
+  - Apply a reward, remediation, or a "soft consequence" based on the results.
+- **Output**: Logs of the test results and actions taken.
 
 ### self_chat_loop.sh
-- **Objective**: Simulate looped reflective LLM dialog.
+- **Objective**: Simulate a conversation between two AI personas.
 - **Tasks**:
-  - Use chat-style memory for recursion.
-  - Optimize via prompt transformation.
-- **Output**: Output transcript saved to logs.
+  - Generate responses for each persona using the LLM.
+  - Check each response for ethics violations.
+- **Output**: A log of the conversation.
+
+### send_prompt.sh
+- **Objective**: Send a prompt to the local LLM using the `llama-cli` tool.
+- **Tasks**:
+  - Assemble a prompt from a command-line argument and/or stdin.
+  - Call `llama-cli` and parse the output.
+- **Output**: The generated text from the LLM.
 
 ### strategize_project.sh
-- **Objective**: Generate strategy from existing state.
+- **Objective**: Generate a set of sub-strategies from a list of project goals.
 - **Tasks**:
-  - Analyze development lessons and active tasks.
-  - Suggest improvement areas.
-- **Output**: Strategy summary and updates to plan.
+  - Read a file of project goals.
+  - Use the LLM to generate a list of sub-strategies.
+- **Output**: A file containing the generated sub-strategies.
 
-### task_manager.sh
-- **Objective**: Task execution layer with routing logic.
+### test_server.sh
+- **Objective**: A health check and test query for the LLM server.
 - **Tasks**:
-  - Dispatch tasks from final plan.
-  - Monitor result status.
-- **Output**: Execution metrics per task.
+  - Check if the server is reachable.
+  - Send a test prompt and parse the response.
+- **Output**: The LLM's response to the test prompt.
 
-### validation_loop.sh
-- **Objective**: Continuous validation of prompt, task, and memory artifacts.
+### utils.sh
+- **Objective**: Provide common utility functions for the other scripts.
 - **Tasks**:
-  - Check prompt structure, XML validity, and memory sync.
-- **Output**: Diagnostic reports on engine readiness.
+  - Set up the environment, log messages, and check for dependencies.
+- **Output**: None.
 
 ---
 
@@ -323,7 +383,9 @@ This section lists possible enhancements to the code analysis script.
 - **Integration with CI/CD**: The script should be integrated into the CI/CD pipeline to provide continuous feedback on code quality.
 - **Customizable Thresholds**: The script should allow users to define custom thresholds for each metric to trigger warnings or failures.
 
-## C++ Daemon Design
+## C++ Daemon Design (Alternative Implementation)
+
+**Note:** The following describes a C++ based implementation of a task management pipeline. While the repository contains C++ source files in the `interface/` directory that align with this design, the primary, documented pipeline currently in use is the shell script-based system described in the `scripts/` section.
 
 The C++ daemon is the core component of the QuantaPorto system. It is responsible for orchestrating the entire workflow, from parsing PQL commands to enforcing rules and managing the LLM lifecycle.
 
