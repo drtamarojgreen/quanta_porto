@@ -138,16 +138,17 @@ The `scripts/` directory contains a rich set of tools for managing the entire li
 
 ## ⚖️ AI Ethics and Bias Enhancement
 
-QuantaPorto has undergone a significant enhancement of its ethics and bias detection system, introducing advanced multi-method bias detection, integrated pipeline processing, and comprehensive testing frameworks to ensure responsible AI deployment.
+QuantaPorto features a comprehensive ethics and bias detection system designed to ensure responsible AI deployment. The system includes advanced multi-method bias detection, integrated pipeline processing, and extensive testing frameworks.
 
-### Key Enhancements
+### Key Features
 
-- **Advanced Ethics and Bias Detection System**: A new standalone checker (`scripts/ethics_bias_checker.sh`), an enhanced task manager with integrated ethics checking (`scripts/enhanced_task_manager.sh`), and an advanced BDD test runner for ethics validation (`tests/bdd/enhanced_test_runner.sh`).
-- **Comprehensive Bias Categories**: The system now detects a wide range of biases, including gender, racial, age, disability, socioeconomic, and religious biases, as well as intersectional bias and microaggressions.
-- **Severity-Based Response System**: A scoring system classifies violations into Low, Medium, High, and Critical, with corresponding actions from logging to immediate timeouts.
-- **Integrated Pipeline Processing**: The enhanced task manager provides real-time ethics checking, automatic bias mitigation, and configurable retry mechanisms.
+- **Advanced Detection**: Utilizes pattern-based, implicit, and intersectional bias detection methods to identify a wide range of biases, including gender, racial, age, and socioeconomic biases.
+- **Integrated Pipeline**: The `enhanced_task_manager.sh` script provides real-time ethics checking, automatic bias mitigation, and configurable retry mechanisms.
+- **Severity Scoring**: A point-based system classifies violations into Low, Medium, High, and Critical, triggering corresponding actions from logging to immediate timeouts.
+- **Standalone Checker**: The `ethics_bias_checker.sh` script allows for on-demand analysis of text for ethical and bias-related issues.
+- **BDD Testing**: The `enhanced_test_runner.sh` provides a framework for running Behavior-Driven Development tests to validate the ethics and bias detection system.
 
-For more details, please see the [full ethics enhancement documentation](docs/ETHICS_ENHANCEMENT_README.md).
+For a detailed overview of the ethics and bias enhancement, please see the [full documentation](docs/ethics.md).
 
 ---
 

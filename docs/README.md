@@ -9,7 +9,7 @@
 - Establish **consequence logic** to redirect LLM behavior
 - Create a human-readable, symbolic command language: **QuantaPorto Language (PQL)**
 - Foster reflective response pipelines (review > revise > respond)
-- Promote ethical AI by actively identifying and mitigating bias. See [AI Ethics and Bias Mitigation](ethics.md) for more details.
+- **Promote Ethical AI**: The framework includes a comprehensive ethics and bias detection system to identify and mitigate harmful content. For more details, see the [AI Ethics and Bias Mitigation](ethics.md) documentation.
 
 ---
 
