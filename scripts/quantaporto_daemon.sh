@@ -30,6 +30,7 @@ mkdir -p "$QUEUE_FAILED_DIR"
 log_info "Monitoring queue: ${QUEUE_PENDING_DIR}"
 
 # --- Main Monitoring Loop ---
+let "silent_cycles = 0"
 while true; do
     # Find the first file in the pending queue. The '-print -quit' arguments ensure
     # that 'find' stops after locating the very first item, making it an efficient
@@ -40,8 +41,19 @@ while true; do
     if [[ -z "$TASK_FILE" ]]; then
         # Wait for the configured polling interval before checking again.
         sleep "$POLL_INTERVAL_SEC"
+
+        # After waiting, increment the silent cycle counter.
+        ((silent_cycles++))
+        # Every 10 silent cycles, print a heartbeat message.
+        if [[ silent_cycles -ge 10 ]]; then
+            log_info "Daemon is alive, still waiting for tasks..."
+            silent_cycles=0
+        fi
         continue
     fi
+
+    # If a task is found, reset the silent cycle counter.
+    silent_cycles=0
 
     FILENAME=$(basename "$TASK_FILE")
     log_info "Found task: $FILENAME"

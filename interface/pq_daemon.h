@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+// Forward declaration for Config class to avoid circular dependencies
+class Config;
+
 struct PQLTask {
     std::string id;
     std::string type;
@@ -19,6 +22,11 @@ struct PQLTask {
 class PQLParser {
 public:
     std::vector<PQLTask> parse(const std::string& filename);
+};
+
+class ActionScriptGenerator {
+public:
+    bool generate(const Config& config, const PQLTask& task);
 };
 
 class PromptGenerator {
@@ -43,7 +51,7 @@ public:
 
 class Scheduler {
 public:
-    void run();
+    void run(const Config& config);
 };
 
 #endif // PQ_DAEMON_H
