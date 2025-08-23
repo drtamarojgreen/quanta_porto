@@ -32,28 +32,23 @@ fi
 
 # --- Logic ---
 
-# 1. Parse the Task ID from the XML file.
-#    - `grep -o 'id="[^"]*"'`: Searches the task file for the pattern 'id="..."'.
-#      The '-o' flag ensures that only the matching part of the line (e.g., id="some-id") is printed.
-#    - `sed 's/id="\([^"]*\)"/\1/'`: Takes the output from grep and uses a regular expression
-#      to capture the value inside the double quotes. It then replaces the entire string
-#      with just the captured group (the ID itself).
-#    Example: <task id="some-id"> -> "some-id"
-TASK_ID=$(grep -o 'id="[^"]*"' "$TASK_FILE" | sed 's/id="\([^"]*\)"/\1/')
+# Ensure xmlstarlet is installed before proceeding.
+check_deps "xmlstarlet"
+
+# 1. Parse the Task ID from the XML file using xmlstarlet.
+#    - `sel -t -v "/task/@id"`: Selects the value of the 'id' attribute of the root <task> element.
+#    This is more robust than using grep and sed.
+TASK_ID=$(xmlstarlet sel -t -v "/task/@id" "$TASK_FILE")
 if [[ -z "$TASK_ID" ]]; then
     log_error "Could not parse task ID from $TASK_FILE"
     exit 1
 fi
 log_info "QuantaPorto Worker: Processing task $TASK_ID..."
 
-# 2. Parse all commands from the XML file.
-#    - `grep '<command>'`: Finds all lines containing the <command> tag.
-#    - `sed -e 's/...' -e 's/...'`: Executes two substitution commands:
-#      a. `s/^[[:space:]]*<command>//`: Removes the opening <command> tag and any leading whitespace.
-#      b. `s/<\/command>[[:space:]]*$//`: Removes the closing </command> tag and any trailing whitespace.
-#    The result is a newline-separated string of the raw commands.
-#    Example: <command>do something</command> -> "do something"
-COMMANDS=$(grep '<command>' "$TASK_FILE" | sed -e 's/^[[:space:]]*<command>//' -e 's/<\/command>[[:space:]]*$//')
+# 2. Parse all commands from the XML file using xmlstarlet.
+#    - `sel -t -m "/task/commands/command"`: Matches all <command> elements.
+#    - `-v . -n`: Prints the value of each matched element, followed by a newline.
+COMMANDS=$(xmlstarlet sel -t -m "/task/commands/command" -v . -n "$TASK_FILE")
 
 if [[ -z "$COMMANDS" ]]; then
     log_warn "No commands found for task $TASK_ID. Creating an empty action script."
