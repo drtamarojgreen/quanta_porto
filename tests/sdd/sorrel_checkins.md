@@ -1,4 +1,4 @@
-# Checkins
+# Sorrel Checkins
 
 ## Environmental Facts
 - **Scripts**: 23 shell scripts identified in `scripts/` (e.g., `run_task.sh`, `parse_pql.sh`, `check_server_status.sh`).

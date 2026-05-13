@@ -1,4 +1,4 @@
-# Checkouts
+# Sorrel Checkouts
 
 ## Completed Work
 - **Porto Manager Design**: Completed in `docs/porto_manager_design.md`.
