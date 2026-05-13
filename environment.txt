@@ -15,6 +15,7 @@ RULES_FILE = rules/rules.xml
 PRIORITY_FILE = config/priorities.txt
 POLL_INTERVAL_SEC = 60
 TIMEOUT_DURATION_SEC = 7200
+SCRIPTS_DIR = scripts
 STRATEGY_PLAN_FILE = memory/strategy_plan.txt
 REQUIREMENTS_FILE = memory/requirements.md
 TASK_FILE = rules/tasks.txt

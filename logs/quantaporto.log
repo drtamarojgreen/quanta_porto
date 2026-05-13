@@ -1,0 +1,25 @@
+[Wed May 13 18:41:24 2026] [PortoManager] Porto Manager initialized.
+[Wed May 13 18:42:14 2026] [PortoManager] Porto Manager initialized. Discovered 0 scripts.
+[Wed May 13 18:43:38 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 18:46:12 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 18:46:12 2026] [PortoManager] Executing script: check_server_status.sh
+[Wed May 13 18:46:12 2026] [PortoManager] Script failed: check_server_status.sh with exit code 32512
+[Wed May 13 18:54:03 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 18:54:03 2026] [PortoManager] Executing script: polling.sh
+[Wed May 13 18:54:03 2026] [PortoManager] Script executed successfully: polling.sh
+[Wed May 13 19:03:25 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 19:04:57 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 19:04:57 2026] [PortoManager] Executing script: polling.sh
+[Wed May 13 19:04:57 2026] [PortoManager] Script failed: polling.sh with exit code 256
+[Wed May 13 19:05:56 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 19:05:56 2026] [PortoManager] Executing script: polling.sh
+[Wed May 13 19:05:56 2026] [PortoManager] Script failed: polling.sh with exit code 256
+[Wed May 13 19:07:28 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 19:07:28 2026] [PortoManager] Executing script: polling.sh with args: ls
+[Wed May 13 19:07:28 2026] [PortoManager] Script executed successfully: polling.sh
+[Wed May 13 19:17:08 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 19:17:08 2026] [PortoManager] Executing script: polling.sh with sanitized args: ls  rm LICENSE
+[Wed May 13 19:17:09 2026] [PortoManager] Script executed successfully: polling.sh
+[Wed May 13 19:19:54 2026] [PortoManager] Porto Manager initialized. Discovered 23 scripts.
+[Wed May 13 19:19:54 2026] [PortoManager] Executing script: polling.sh with sanitized args: ls
+[Wed May 13 19:19:54 2026] [PortoManager] Script executed successfully: polling.sh
