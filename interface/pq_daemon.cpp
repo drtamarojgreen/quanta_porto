@@ -258,11 +258,10 @@ int main() {
     std::cout << "QuantaPorto C++ Daemon Initializing..." << std::endl;
 
     Config config;
-    if (!config.load("environment.txt")) {
-        std::cerr << "Failed to load 'environment.txt'. Make sure the application is run from the project root directory." << std::endl;
-        return 1;
-    }
-    std::cout << "Configuration loaded successfully." << std::endl;
+    config.load("environment.txt");
+    config.load(".quanta");
+
+    std::cout << "Configuration loaded." << std::endl;
 
     Scheduler scheduler;
     scheduler.run(config);

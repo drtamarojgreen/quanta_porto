@@ -18,10 +18,8 @@ public:
     PortoManager() : m_scriptsDir("scripts"), m_logFile("logs/quantaporto.log") {}
 
     bool initialize(const std::string& configFile) {
-        if (!m_config.load(configFile)) {
-            std::cerr << "Error: Failed to load configuration from " << configFile << std::endl;
-            return false;
-        }
+        m_config.load(configFile);
+        m_config.load(".quanta");
 
         auto scriptsDirOpt = m_config.getString("SCRIPTS_DIR");
         if (scriptsDirOpt) {

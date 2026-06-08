@@ -148,6 +148,28 @@ QuantaPorto features a comprehensive ethics and bias detection system designed t
 - **Standalone Checker**: The `ethics_bias_checker.sh` script allows for on-demand analysis of text for ethical and bias-related issues.
 - **BDD Testing**: The `enhanced_test_runner.sh` provides a framework for running Behavior-Driven Development tests to validate the ethics and bias detection system.
 
+## Configuration
+
+QuantaPorto supports two levels of configuration:
+1.  **`environment.txt`**: The default shared configuration file (checked into the repository).
+2.  **`.quanta`**: A local-only configuration file used for environment-specific overrides (e.g., absolute paths to models and binaries). This file is automatically ignored by Git.
+
+### Setup Local Paths (.quanta)
+Create a `.quanta` file in the project root to specify local paths:
+```ini
+# Local paths for QuantaPorto (Not committed to repo)
+engine.model_path=/path/to/model.gguf
+model.llama_cli_path=/path/to/llama-cli
+
+# QuantaPorto Specific Overrides
+LLAMACPP_PATH=/path/to/llama.cpp/build/bin
+LLM_NAME=llama-cli
+MODEL_DIRECTORY=/path/to/models
+MODEL_FILENAME=model_name.gguf
+```
+
+The system will prioritize values in `.quanta` over those in `environment.txt`.
+
 For a detailed overview of the ethics and bias enhancement, please see the [full documentation](docs/ethics.md).
 
 ---

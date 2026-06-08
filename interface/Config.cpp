@@ -7,7 +7,7 @@ Config::Config() = default;
 bool Config::load(const std::string& configFile) {
     std::ifstream file(configFile);
     if (!file.is_open()) {
-        std::cerr << "Error: Could not open config file: " << configFile << std::endl;
+        // Silent return for optional files like .quanta
         return false;
     }
 

@@ -185,6 +185,7 @@ void run_pipeline() {
 int main() {
     // Load the configuration from the environment file
     load_config("config/environment.txt");
+    load_config(".quanta");
 
     // Get the configuration values from the map
     const std::string LOG_FILE = config["LOG_FILE"];
