@@ -36,6 +36,8 @@
     - Enforce minimal artifact creation; temporary files must be cleaned or kept to a minimum.
     - Prohibit mocks for production systems where empirical verification is possible.
     - All verification cards must be independent and executable in isolation.
+    - No feature extractor shall emit NaN or Inf values (Item 184).
+    - All extractors must handle edge cases (empty strings, punctuation-only text) without crashing (Item 183).
 
 ## Planned ML Verification Cards
 - `tests/sdd/card_data_prep.py`: Verify `balance_and_split_data` (outputs: `train_size`, `test_size`, `label_balance_ratio`).
@@ -53,3 +55,9 @@
 - [x] Verify implementation.
 - [x] Implement ML Testing Cards.
 - [x] Verify ML implementation.
+- [x] Implement Comprehensive Robustness Tests (Item 183, 181).
+- [x] Verify ML implementation against NaN/Inf restrictions (Item 184).
+
+## Enhancement Requirements (from docs/ml_enhancement_backlog.md)
+- **Infrastructure (Category N)**: Implement FeatureRegistry (Item 131) and Named Column Output (Item 132).
+- **Testing (Category S)**: Implement Robustness and Property-Based Testing (Item 183) and ensure no NaN/Inf emissions (Item 184).
