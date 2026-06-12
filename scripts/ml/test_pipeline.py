@@ -40,7 +40,8 @@ def run_mock_test():
         "NounRatio", "VerbRatio", "AdjRatio", "AdvRatio", "PronRatio", "AdpRatio", "ConjRatio", "FuncWordRatio",
         "PassiveRatio",
         "SentCompoundMean", "SentCompoundStd", "SentPosMean", "SentPosStd", "SentNegMean", "SentNegStd", "SentNeuMean", "SentNeuStd",
-        "EntDensity", "NounDiversity"
+        "EntDensity", "NounDiversity",
+        "HumanLeaningRatio", "LLMLeaningRatio", "TopDimRatio"
     ]
     
     print("Training interpretable model...")

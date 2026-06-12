@@ -3,6 +3,8 @@ from collections import Counter
 import numpy as np
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
+import pandas as pd
+import os
 
 nlp = spacy.load("en_core_web_sm")
 analyzer = SentimentIntensityAnalyzer()
@@ -11,7 +13,7 @@ def stylometric_features(texts):
     feats = []
     for doc in nlp.pipe(texts, batch_size=256):
         tokens = [t.text.lower() for t in doc if t.is_alpha]
-        words = [t for t in tokens if not t.is_punct]
+        words = [t.text.lower() for t in doc if not t.is_punct and not t.is_space]
         if not words:
             feats.append([0]*13); continue
         ttr = len(set(words)) / len(words)
@@ -90,6 +92,40 @@ def entity_density(texts):
         densities.append([ent_density, noun_diversity])
     return np.array(densities)
 
+def categorical_word_features(texts, mapping_path="scripts/ml/words.csv"):
+    """
+    Extracts features based on the categorical classification of words (leaning and dimension).
+    """
+    if not os.path.exists(mapping_path):
+        # Fallback if no mapping exists yet
+        return np.zeros((len(texts), 3))
+
+    df = pd.read_csv(mapping_path)
+    # Create fast lookup dicts
+    lean_map = dict(zip(df['word'], df['lean']))
+    dim_map = dict(zip(df['word'], df['dimension']))
+
+    feats = []
+    for doc in nlp.pipe(texts, batch_size=256):
+        tokens = [t.text.lower() for t in doc if t.is_alpha]
+        if not tokens:
+            feats.append([0, 0, 0]); continue
+
+        h_count = sum(1 for t in tokens if lean_map.get(t) == "Human-leaning")
+        l_count = sum(1 for t in tokens if lean_map.get(t) == "LLM-leaning")
+
+        h_ratio = h_count / len(tokens)
+        l_ratio = l_count / len(tokens)
+
+        # Dominant dimension (dimension with most words in this text)
+        dim_counts = Counter([dim_map.get(t) for t in tokens if dim_map.get(t)])
+        # We just take the count of the most frequent dimension as a simple feature
+        top_dim_count = dim_counts.most_common(1)[0][1] / len(tokens) if dim_counts else 0
+
+        feats.append([h_ratio, l_ratio, top_dim_count])
+
+    return np.array(feats)
+
 def get_tfidf_features(train_texts, test_texts, max_features=500):
     vec = TfidfVectorizer(
         max_features=max_features,
@@ -101,7 +137,7 @@ def get_tfidf_features(train_texts, test_texts, max_features=500):
     test_tfidf = vec.transform(test_texts)
     return train_tfidf, test_tfidf, vec
 
-def extract_all_interpretable_features(texts):
+def extract_all_interpretable_features(texts, mapping_path="scripts/ml/words.csv"):
     print("Extracting stylometric features...")
     sty = stylometric_features(texts)
     print("Extracting passive voice ratio...")
@@ -110,4 +146,6 @@ def extract_all_interpretable_features(texts):
     sent = sentiment_features(texts)
     print("Extracting entity density...")
     ent = entity_density(texts)
-    return np.hstack([sty, pas, sent, ent])
+    print("Extracting categorical word features...")
+    cat = categorical_word_features(texts, mapping_path)
+    return np.hstack([sty, pas, sent, ent, cat])
