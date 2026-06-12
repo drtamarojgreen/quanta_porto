@@ -38,6 +38,7 @@ def run_mock_test():
     feature_names = [
         "TTR", "Hapax", "AvgWordLen", "SentLenMean", "SentLenStd",
         "NounRatio", "VerbRatio", "AdjRatio", "AdvRatio", "PronRatio", "AdpRatio", "ConjRatio", "FuncWordRatio",
+        "MATTR", "MTLD", "YulesK", "CapRatio", "ContractionFreq", "FleschEase",
         "PassiveRatio",
         "SentCompoundMean", "SentCompoundStd", "SentPosMean", "SentPosStd", "SentNegMean", "SentNegStd", "SentNeuMean", "SentNeuStd",
         "EntDensity", "NounDiversity",

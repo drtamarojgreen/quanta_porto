@@ -9,6 +9,77 @@ import os
 nlp = spacy.load("en_core_web_sm")
 analyzer = SentimentIntensityAnalyzer()
 
+def calculate_mattr(words, window_size=50):
+    if len(words) < window_size:
+        return len(set(words)) / len(words) if words else 0
+    ttrs = []
+    for i in range(len(words) - window_size + 1):
+        window = words[i:i+window_size]
+        ttrs.append(len(set(window)) / window_size)
+    return np.mean(ttrs)
+
+def calculate_mtld(words, threshold=0.72):
+    def mtld_base(tokens):
+        if not tokens: return 0
+        factors = 0
+        now_ttr = 1.0
+        types = set()
+        count = 0
+        for t in tokens:
+            count += 1
+            types.add(t)
+            now_ttr = len(types) / count
+            if now_ttr < threshold:
+                factors += 1
+                types = set()
+                count = 0
+                now_ttr = 1.0
+        if count > 0:
+            excess = (1.0 - now_ttr) / (1.0 - threshold)
+            factors += excess
+        return len(tokens) / factors if factors > 0 else len(tokens)
+
+    forward = mtld_base(words)
+    backward = mtld_base(words[::-1])
+    if forward > 0 and backward > 0:
+        return (forward + backward) / 2
+    return forward or backward
+
+def calculate_yules_k(words):
+    if not words: return 0
+    n = len(words)
+    counts = Counter(words)
+    m1 = n
+    m2 = sum(count**2 for count in counts.values())
+    return 10000 * (m2 - m1) / (n**2)
+
+def count_syllables(word):
+    word = word.lower()
+    count = 0
+    vowels = "aeiouy"
+    if word[0] in vowels:
+        count += 1
+    for index in range(1, len(word)):
+        if word[index] in vowels and word[index - 1] not in vowels:
+            count += 1
+    if word.endswith("e"):
+        count -= 1
+    if count == 0:
+        count += 1
+    return count
+
+def flesch_reading_ease(doc):
+    words = [t for t in doc if not t.is_punct and not t.is_space]
+    sentences = list(doc.sents)
+    if not words or not sentences:
+        return 0
+
+    avg_sentence_length = len(words) / len(sentences)
+    avg_syllables_per_word = sum(count_syllables(w.text) for w in words) / len(words)
+
+    score = 206.835 - (1.015 * avg_sentence_length) - (84.6 * avg_syllables_per_word)
+    return score
+
 def stylometric_features(texts):
     feats = []
     for doc in nlp.pipe(texts, batch_size=256):
@@ -42,8 +113,28 @@ def stylometric_features(texts):
         func_count = sum(1 for t in tokens if t in func_words)
         func_ratio = func_count / len(tokens) if tokens else 0
 
+        mattr = calculate_mattr(words)
+        mtld = calculate_mtld(words)
+        yules_k = calculate_yules_k(words)
+
+        # Capitalization patterns (B.13)
+        title_count = sum(1 for t in doc if t.text.istitle())
+        upper_count = sum(1 for t in doc if t.text.isupper() and len(t.text) > 1)
+        cap_ratio = (title_count + upper_count) / len(doc) if len(doc) > 0 else 0
+
+        # Contraction frequency (B.15)
+        # spaCy splits contractions into multiple tokens (e.g., "don't" -> ["do", "n't"])
+        # We can look for tokens like "n't", "'re", "'ve", etc.
+        contractions = {"n't", "'re", "'ve", "'ll", "'s", "'m", "'d"}
+        contraction_count = sum(1 for t in doc if t.text.lower() in contractions)
+        contraction_freq = contraction_count / len(doc) if len(doc) > 0 else 0
+
+        # Flesch Reading Ease (C.27)
+        flesch_score = flesch_reading_ease(doc)
+
         feats.append([ttr, hapax, avg_word_len, sent_len_mean, sent_len_std,
-                      noun, verb, adj, adv, pron, adp, conj, func_ratio])
+                      noun, verb, adj, adv, pron, adp, conj, func_ratio,
+                      mattr, mtld, yules_k, cap_ratio, contraction_freq, flesch_score])
     return np.array(feats)
 
 def passive_voice_ratio(texts):
