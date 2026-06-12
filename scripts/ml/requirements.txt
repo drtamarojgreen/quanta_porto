@@ -1,0 +1,10 @@
+spacy
+numpy
+scikit-learn
+transformers
+shap
+vaderSentiment
+nltk
+pandas
+datasets
+torch
