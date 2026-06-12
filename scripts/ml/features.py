@@ -10,8 +10,7 @@ analyzer = SentimentIntensityAnalyzer()
 def stylometric_features(texts):
     feats = []
     for doc in nlp.pipe(texts, batch_size=256):
-        tokens = [t.text.lower() for t in doc if t.is_alpha]
-        words = [t for t in tokens if not t.is_punct]
+        words = [t.text.lower() for t in doc if t.is_alpha and not t.is_punct]
         if not words:
             feats.append([0]*13); continue
         ttr = len(set(words)) / len(words)
@@ -37,8 +36,8 @@ def stylometric_features(texts):
                       "and","or","but","if","because","that","this","it","he","she",
                       "they","we","you","is","are","was","were","be","been","have","has",
                       "do","does","did","will","would","can","could","may","might","shall"}
-        func_count = sum(1 for t in tokens if t in func_words)
-        func_ratio = func_count / len(tokens) if tokens else 0
+        func_count = sum(1 for t in words if t in func_words)
+        func_ratio = func_count / len(words) if words else 0
 
         feats.append([ttr, hapax, avg_word_len, sent_len_mean, sent_len_std,
                       noun, verb, adj, adv, pron, adp, conj, func_ratio])
