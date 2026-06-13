@@ -1,17 +1,21 @@
 import sys
 import os
 import numpy as np
+from sorrel_runner import Is, Results, Situation, SorrelRunner, dispatch
 
 # Add scripts/ml to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../scripts/ml')))
 
 from features import extract_all_interpretable_features
 
-def verify_robustness():
+@Is
+@Situation("Default")
+@Results(nan_count=0, inf_count=0, feature_dim=36)
+def card_robustness_verify():
     # Test cases: empty, punctuation, long repetitive
     texts = ["", "...", "the " * 1000]
 
-    feats = extract_all_interpretable_features(texts)
+    feats, _ = extract_all_interpretable_features(texts)
 
     # Numeric evidence
     nan_count = np.isnan(feats).sum()
@@ -24,21 +28,15 @@ def verify_robustness():
     print(f"rows_processed = {rows_processed}")
     print(f"feature_dim = {feature_dim}")
 
-    # Assertions for the runner
-    if nan_count > 0 or inf_count > 0 or rows_processed != 3 or feature_dim != 24:
-        sys.exit(1)
-
     # Check long text TTR (should be very low)
     ttr_long = feats[2, 0]
     print(f"ttr_long = {ttr_long:.4f}")
-    if ttr_long > 0.1: # It should be 1/1000 = 0.001
-        sys.exit(1)
 
-    sys.exit(0)
+    if nan_count > 0 or inf_count > 0 or rows_processed != 3 or feature_dim != 36:
+        raise Exception("Validation failed")
+    if ttr_long > 0.1: # It should be 1/1000 = 0.001
+        raise Exception("TTR too high for repetitive text")
 
 if __name__ == "__main__":
-    try:
-        verify_robustness()
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+    runner = SorrelRunner()
+    dispatch(runner)

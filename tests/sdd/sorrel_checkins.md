@@ -15,6 +15,11 @@
     - `torch`: 2.12.0
     - `shap`: 0.52.0
     - `vaderSentiment`: 3.3.2
+    - `matplotlib`: 3.11.0
+    - `scipy`: 1.17.1
+    - `textstat`: 0.7.13
+    - `hypothesis`: 6.155.2
+    - `pytest`: 9.0.3
 - **Config**: `environment.txt` is the primary source of truth for paths and settings.
 
 ## SDD Restrictions
@@ -57,6 +62,8 @@
 - [x] Verify ML implementation.
 - [x] Implement Comprehensive Robustness Tests (Item 183, 181).
 - [x] Verify ML implementation against NaN/Inf restrictions (Item 184).
+- [x] Implement Foundational ML Infrastructure (Item 131, 132).
+- [x] Implement Foundational Feature Enhancements (Item 1, 27, 31, 43).
 
 ## Enhancement Requirements (from docs/ml_enhancement_backlog.md)
 - **Infrastructure (Category N)**: Implement FeatureRegistry (Item 131) and Named Column Output (Item 132).

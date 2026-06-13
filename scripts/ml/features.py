@@ -3,9 +3,33 @@ from collections import Counter
 import numpy as np
 from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.stats import skew, kurtosis
+import textstat
 
 nlp = spacy.load("en_core_web_sm")
 analyzer = SentimentIntensityAnalyzer()
+
+class FeatureRegistry:
+    """Item 131: Feature Registry for modular management."""
+    def __init__(self):
+        self._registry = {}
+
+    def register(self, group_name, func, feature_names):
+        """Register a feature extraction function."""
+        self._registry[group_name] = {
+            "func": func,
+            "names": feature_names
+        }
+
+    def extract_all(self, texts):
+        """Item 132: Return feature names alongside arrays."""
+        all_feats = []
+        all_names = []
+        for group in self._registry.values():
+            feats = group["func"](texts)
+            all_feats.append(feats)
+            all_names.extend(group["names"])
+        return np.hstack(all_feats), all_names
 
 def stylometric_features(texts):
     feats = []
@@ -41,6 +65,82 @@ def stylometric_features(texts):
 
         feats.append([ttr, hapax, avg_word_len, sent_len_mean, sent_len_std,
                       noun, verb, adj, adv, pron, adp, conj, func_ratio])
+    return np.array(feats)
+
+def advanced_pos_features(texts):
+    """Item 31: Granular POS."""
+    feats = []
+    for doc in nlp.pipe(texts, batch_size=256):
+        pos_counts = Counter([t.pos_ for t in doc])
+        total = sum(pos_counts.values())
+        propn = pos_counts.get("PROPN", 0) / total if total > 0 else 0
+        num = pos_counts.get("NUM", 0) / total if total > 0 else 0
+        aux = pos_counts.get("AUX", 0) / total if total > 0 else 0
+        part = pos_counts.get("PART", 0) / total if total > 0 else 0
+        feats.append([propn, num, aux, part])
+    return np.array(feats)
+
+def _get_tree_depth(node):
+    if not list(node.children):
+        return 1
+    return 1 + max(_get_tree_depth(child) for child in node.children)
+
+def advanced_syntax_features(texts):
+    """Items 43, 45: Tree depth and subordination."""
+    feats = []
+    for doc in nlp.pipe(texts, batch_size=256):
+        depths = []
+        sub_clauses = 0
+        total_tokens = len(doc)
+
+        for sent in doc.sents:
+            # Tree depth
+            depths.append(_get_tree_depth(sent.root))
+
+            # Subordination (sconj or advcl)
+            for token in sent:
+                if token.dep_ in ["advcl", "relcl", "ccomp", "xcomp"]:
+                    sub_clauses += 1
+
+        avg_depth = np.mean(depths) if depths else 0
+        sub_ratio = sub_clauses / total_tokens if total_tokens > 0 else 0
+        feats.append([avg_depth, sub_ratio])
+    return np.array(feats)
+
+def advanced_lexical_features(texts, window_size=50):
+    """Item 1: Moving-Window TTR (MATTR)."""
+    feats = []
+    for doc in nlp.pipe(texts, batch_size=256):
+        words = [t.text.lower() for t in doc if t.is_alpha and not t.is_punct]
+        if len(words) < window_size:
+            mattr = len(set(words)) / len(words) if words else 0
+        else:
+            ttrs = []
+            for i in range(len(words) - window_size + 1):
+                window = words[i:i+window_size]
+                ttrs.append(len(set(window)) / window_size)
+            mattr = np.mean(ttrs)
+        feats.append([mattr])
+    return np.array(feats)
+
+def rhythm_readability_features(texts):
+    """Items 21, 22, 27, 61: Readability and pacing with batched parsing."""
+    feats = []
+    for doc in nlp.pipe(texts, batch_size=256):
+        text = doc.text
+        sent_lens = [len(s) for s in doc.sents if len(s) > 0]
+        if not sent_lens:
+            feats.append([0, 0, 0, 0, 0])
+            continue
+
+        med_sent_len = np.median(sent_lens)
+        skew_sent_len = skew(sent_lens) if len(sent_lens) > 2 else 0
+        kurt_sent_len = kurtosis(sent_lens) if len(sent_lens) > 2 else 0
+
+        flesch_ease = textstat.flesch_reading_ease(text)
+        flesch_grade = textstat.flesch_kincaid_grade(text)
+
+        feats.append([med_sent_len, skew_sent_len, kurt_sent_len, flesch_ease, flesch_grade])
     return np.array(feats)
 
 def passive_voice_ratio(texts):
@@ -89,6 +189,25 @@ def entity_density(texts):
         densities.append([ent_density, noun_diversity])
     return np.array(densities)
 
+# Initialize registry and register features
+registry = FeatureRegistry()
+registry.register("stylometric", stylometric_features, [
+    "TTR", "Hapax", "AvgWordLen", "SentLenMean", "SentLenStd",
+    "NounRatio", "VerbRatio", "AdjRatio", "AdvRatio", "PronRatio", "AdpRatio", "ConjRatio", "FuncWordRatio"
+])
+registry.register("advanced_pos", advanced_pos_features, ["PropnRatio", "NumRatio", "AuxRatio", "PartRatio"])
+registry.register("advanced_syntax", advanced_syntax_features, ["AvgTreeDepth", "SubordinateRatio"])
+registry.register("advanced_lexical", advanced_lexical_features, ["MATTR"])
+registry.register("rhythm_readability", rhythm_readability_features, [
+    "MedSentLen", "SkewSentLen", "KurtSentLen", "FleschEase", "FleschGrade"
+])
+registry.register("passive", passive_voice_ratio, ["PassiveRatio"])
+registry.register("sentiment", sentiment_features, [
+    "SentCompoundMean", "SentCompoundStd", "SentPosMean", "SentPosStd",
+    "SentNegMean", "SentNegStd", "SentNeuMean", "SentNeuStd"
+])
+registry.register("entity", entity_density, ["EntDensity", "NounDiversity"])
+
 def get_tfidf_features(train_texts, test_texts, max_features=500):
     vec = TfidfVectorizer(
         max_features=max_features,
@@ -101,12 +220,5 @@ def get_tfidf_features(train_texts, test_texts, max_features=500):
     return train_tfidf, test_tfidf, vec
 
 def extract_all_interpretable_features(texts):
-    print("Extracting stylometric features...")
-    sty = stylometric_features(texts)
-    print("Extracting passive voice ratio...")
-    pas = passive_voice_ratio(texts)
-    print("Extracting sentiment features...")
-    sent = sentiment_features(texts)
-    print("Extracting entity density...")
-    ent = entity_density(texts)
-    return np.hstack([sty, pas, sent, ent])
+    """Refactored to use FeatureRegistry."""
+    return registry.extract_all(texts)

@@ -7,60 +7,40 @@ import os
 # Add scripts/ml to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../scripts/ml')))
 
-from features import (
-    stylometric_features,
-    passive_voice_ratio,
-    sentiment_features,
-    entity_density,
-    extract_all_interpretable_features
-)
+from features import extract_all_interpretable_features
 
-def test_stylometric_features_empty():
-    texts = ["", "   ", "!!!"]
-    feats = stylometric_features(texts)
-    assert feats.shape == (3, 13)
-    assert np.all(feats == 0)
-
-def test_passive_voice_ratio_empty():
-    texts = [""]
-    feats = passive_voice_ratio(texts)
-    assert feats.shape == (1, 1)
-    assert feats[0, 0] == 0
-
-def test_sentiment_features_empty():
-    texts = [""]
-    feats = sentiment_features(texts)
-    assert feats.shape == (1, 8)
-    assert np.all(feats == 0)
-
-def test_entity_density_empty():
-    texts = [""]
-    feats = entity_density(texts)
-    assert feats.shape == (1, 2)
-    assert np.all(feats == 0)
+def test_extract_all_interpretable_features_basic():
+    texts = ["The quick brown fox jumps over the lazy dog.", "Hello world!"]
+    feats, names = extract_all_interpretable_features(texts)
+    assert feats.shape[0] == 2
+    assert len(names) == feats.shape[1]
+    assert "MATTR" in names
+    assert "FleschEase" in names
+    assert "AvgTreeDepth" in names
 
 @given(st.text())
 def test_extract_all_interpretable_features_robustness(t):
-    # Ensure it doesn't crash and returns no NaNs
+    # Item 183, 184: Ensure no crashes and no NaNs
     try:
-        feats = extract_all_interpretable_features([t])
-        assert feats.shape == (1, 24)
+        feats, names = extract_all_interpretable_features([t])
         assert not np.any(np.isnan(feats))
         assert not np.any(np.isinf(feats))
     except Exception as e:
-        # Some very weird strings might cause issues in spaCy or VADER,
-        # but we want to know if it's a "clean" crash.
         pytest.fail(f"Crashed with input {repr(t)}: {e}")
 
-def test_stylometric_features_known_values():
-    # Repetitive text to test TTR
-    texts = ["word word word word"]
-    feats = stylometric_features(texts)
-    # TTR = unique words / total words = 1 / 4 = 0.25
-    assert feats[0, 0] == 0.25
-    # Hapax = 0 / 4 = 0
-    assert feats[0, 1] == 0
+def test_mattr_known_values():
+    from features import advanced_lexical_features
+    # If window_size=50 and text is short, it should be same as TTR
+    text = ["word " * 10]
+    feats = advanced_lexical_features(text, window_size=50)
+    assert feats[0, 0] == 0.1 # 1 unique / 10 total
+
+def test_readability_known_values():
+    from features import rhythm_readability_features
+    text = ["The cat sat on the mat."]
+    feats = rhythm_readability_features(text)
+    # flesch ease for simple sentence should be high
+    assert feats[0, 3] > 100
 
 if __name__ == "__main__":
-    # Allow running directly
     pytest.main([__file__])

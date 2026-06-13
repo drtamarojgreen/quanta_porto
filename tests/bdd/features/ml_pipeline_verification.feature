@@ -12,7 +12,7 @@ Feature: Machine Learning Pipeline Testing
   Scenario: Feature Extraction Accuracy
     Given a set of sample texts
     When interpretable features are extracted
-    Then the feature vector dimension should be 24
+    Then the feature vector dimension should be 36
     And the TTR value should be mathematically valid for the given text
 
   Scenario: Hybrid Model Prediction
