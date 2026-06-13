@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
-from features import extract_all_interpretable_features
-from data_prep import balance_and_split_data
-from pipeline import train_interpretable_model, hybrid_predict
-from evaluate_explain import evaluate_hybrid_system
+from scripts.ml.features import extract_all_interpretable_features
+from scripts.ml.data_prep import balance_and_split_data
+from scripts.ml.pipeline import train_interpretable_model, hybrid_predict
+from scripts.ml.evaluate_explain import evaluate_hybrid_system
 
 def run_mock_test():
     print("Generating mock data...")

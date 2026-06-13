@@ -18,20 +18,20 @@ def test_categorical_analysis():
         "--human", "human_test.txt",
         "--llm", "llm_test.txt",
         "--config", "scripts/ml/dimensions.json",
-        "--compare_words", "test_words.csv"
+        "--compare_words", "tests/ml/test_words.csv"
     ], check=True)
 
     print("Step 3: Verifying mapping file...")
-    if not os.path.exists("test_words.csv"):
-        raise Exception("Mapping file test_words.csv not created!")
+    if not os.path.exists("tests/ml/test_words.csv"):
+        raise Exception("Mapping file tests/ml/test_words.csv not created!")
 
-    df = pd.read_csv("test_words.csv")
+    df = pd.read_csv("tests/ml/test_words.csv")
     print(f"Mapping file contains {len(df)} words.")
     print(df.head())
 
     print("Step 4: Verifying categorical feature extraction...")
     test_texts = ["This system for data analysis is complex.", "Often uses modules."]
-    feats = categorical_word_features(test_texts, mapping_path="test_words.csv")
+    feats = categorical_word_features(test_texts, mapping_path="tests/ml/test_words.csv")
 
     print("Extracted categorical features:")
     print(feats)
@@ -40,6 +40,12 @@ def test_categorical_analysis():
         raise Exception(f"Expected shape (2, 3), got {feats.shape}")
 
     print("Empirical Verification of categorical analysis: PASSED")
+
+    # Final Cleanup
+    os.remove("human_test.txt")
+    os.remove("llm_test.txt")
+    os.remove("tests/ml/test_words.csv")
+    if os.path.exists("triple_comparison.csv"): os.remove("triple_comparison.csv")
 
 if __name__ == "__main__":
     test_categorical_analysis()
