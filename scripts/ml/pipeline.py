@@ -10,7 +10,7 @@ from scipy.special import softmax
 import shap
 import joblib
 import os
-from features import extract_all_interpretable_features, get_tfidf_features
+from scripts.ml.features import extract_all_interpretable_features, get_tfidf_features
 
 def train_interpretable_model(X_train, y_train, X_test, y_test, feature_names):
     scaler = StandardScaler()
@@ -75,8 +75,3 @@ def hybrid_predict(prob_neural, prob_interpretable, threshold=0.9):
             preds.append(1 if pi > 0.5 else 0)
             explanation_needed.append(True)
     return np.array(preds), explanation_needed
-
-if __name__ == "__main__":
-    # This is a skeleton for the training script. 
-    # In a real scenario, you would load your prompt-matched data here.
-    print("ML Pipeline scripts initialized. Use them to train and evaluate your models.")

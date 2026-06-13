@@ -34,6 +34,8 @@ class GraphMetrics:
         """Measures local cohesion (triadic closure)."""
         if not target_indices: return 0.0
         A = model.matrix
+        # Ensure A is symmetric for simple clustering coeff or handle as directed
+        # Here we use the trace of A^3 which works for directed graphs as well but is interpreted differently
         A3 = np.linalg.matrix_power(A, 3)
         degrees = np.sum(A, axis=1)
         coeffs = []
@@ -85,6 +87,57 @@ class GraphModel:
         
         self._weighted_eigen_vecs[w_hash] = v
         return v
+
+class WordCategorizer:
+    """Classifies individual words based on cross-corpus topological leaning."""
+    def __init__(self, human_model, llm_model, config):
+        self.h_model = human_model
+        self.l_model = llm_model
+        self.config = config
+        self.dimensions = config.get("dimensions", [])
+
+    def classify_word_lean(self, word, threshold=0.1):
+        h_idx = self.h_model.word_to_idx.get(word)
+        l_idx = self.l_model.word_to_idx.get(word)
+
+        h_eigen = self.h_model.get_weighted_eigen_vector(np.ones(self.h_model.n))[h_idx] if h_idx is not None else 0.0
+        l_eigen = self.l_model.get_weighted_eigen_vector(np.ones(self.l_model.n))[l_idx] if l_idx is not None else 0.0
+
+        denom = h_eigen + l_eigen
+        if denom == 0: return "Unknown"
+
+        lean = (h_eigen - l_eigen) / denom
+        if lean > threshold: return "Human-leaning"
+        if lean < -threshold: return "LLM-leaning"
+        return "Balanced"
+
+    def assign_to_dimension(self, word):
+        """Assigns a word to the dimension it has the strongest associative strength with."""
+        # Check if word is already a core node in any dimension
+        for dim in self.dimensions:
+            if word in dim.get("nodes", []):
+                return dim["name"]
+
+        # Otherwise, calculate mean associative strength with dimension core nodes
+        best_dim = "General"
+        max_strength = -1.0
+
+        # We use whichever model the word is present in, prioritising human for ground truth
+        model = self.h_model if word in self.h_model.word_to_idx else self.l_model
+        if word not in model.word_to_idx: return "Out-of-Vocab"
+
+        w_idx = model.word_to_idx[word]
+        for dim in self.dimensions:
+            core_nodes = dim.get("nodes", [])
+            indices = [model.word_to_idx[n] for n in core_nodes if n in model.word_to_idx]
+            if not indices: continue
+
+            strength = np.mean(model.matrix[w_idx, indices])
+            if strength > max_strength:
+                max_strength = strength
+                best_dim = dim["name"]
+
+        return best_dim
 
 class CorpusProcessor:
     """Handles tokenization and graph model construction."""
@@ -151,6 +204,7 @@ def main():
     parser.add_argument("--ontology", type=str, help="Path to Reference Ontology Corpus")
     parser.add_argument("--config", type=str, required=True, help="Path to dimensions.json configuration")
     parser.add_argument("--output", type=str, default="triple_comparison.csv", help="Path to output report (CSV)")
+    parser.add_argument("--compare_words", type=str, help="Path to word-level comparison report (CSV)")
     parser.add_argument("--window", type=int, default=5, help="Co-occurrence window size")
     parser.add_argument("--ont_threshold", type=float, default=1.0, help="PPMI threshold for ontology induction (pruning)")
     
@@ -159,11 +213,13 @@ def main():
     processor = CorpusProcessor()
     
     all_results = {}
+    models = {}
     
     # Process each source if present
-    sources = [("human_", args.human), ("llm_", args.llm), ("ont_", args.ontology)]
-    for prefix, path in sources:
+    sources = [("human", args.human), ("llm", args.llm), ("ont", args.ontology)]
+    for prefix_base, path in sources:
         if not path: continue
+        prefix = f"{prefix_base}_"
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 text = f.read()
@@ -171,11 +227,12 @@ def main():
             if not tokens: continue
             
             # Ontology induction uses a stricter pruning threshold
-            threshold = args.ont_threshold if prefix == "ont_" else 0.0
+            threshold = args.ont_threshold if prefix_base == "ont" else 0.0
             model = processor.build_model(tokens, args.window, threshold=threshold)
+            models[prefix_base] = model
             
             all_results.update(engine.analyze(model, prefix))
-            logger.info(f"Processed graph: {prefix[:-1]}")
+            logger.info(f"Processed graph: {prefix_base}")
         except Exception as e:
             logger.error(f"Error processing {path}: {e}")
 
@@ -183,13 +240,33 @@ def main():
         logger.error("No metrics extracted.")
         return
 
-    # Write report
+    # Write global comparative report
     with open(args.output, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=sorted(all_results.keys()))
         writer.writeheader()
         writer.writerow(all_results)
-    
     logger.info(f"Comparative report saved to {args.output}")
+
+    # Word-level categorical classification
+    if args.compare_words and "human" in models and "llm" in models:
+        categorizer = WordCategorizer(models["human"], models["llm"], engine.config)
+        union_vocab = sorted(list(set(models["human"].vocab) | set(models["llm"].vocab)))
+
+        word_results = []
+        for word in union_vocab:
+            lean = categorizer.classify_word_lean(word)
+            dimension = categorizer.assign_to_dimension(word)
+            word_results.append({
+                "word": word,
+                "lean": lean,
+                "dimension": dimension
+            })
+
+        with open(args.compare_words, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=["word", "lean", "dimension"])
+            writer.writeheader()
+            writer.writerows(word_results)
+        logger.info(f"Word-level comparison saved to {args.compare_words}")
 
 if __name__ == "__main__":
     main()

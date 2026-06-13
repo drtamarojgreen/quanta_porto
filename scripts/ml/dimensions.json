@@ -1,0 +1,24 @@
+{
+  "node_weights": {
+    "system": 2.5,
+    "data": 2.0,
+    "analysis": 1.5
+  },
+  "dimensions": [
+    {
+      "name": "Main_Hub_Score",
+      "nodes": ["system", "data", "analysis"],
+      "metric": "eigen_centrality"
+    },
+    {
+      "name": "Methodological_Connectivity",
+      "nodes": ["research", "method"],
+      "metric": "degree_centrality"
+    },
+    {
+      "name": "Structural_Cohesion",
+      "nodes": ["result", "conclusion"],
+      "metric": "clustering_coefficient"
+    }
+  ]
+}
