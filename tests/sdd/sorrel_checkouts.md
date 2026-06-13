@@ -11,3 +11,16 @@
     - Verified logging to `logs/quantaporto.log`.
     - Verified exit code reporting using `WEXITSTATUS`.
     - Verified command injection mitigation via input sanitization.
+- **ML Testing System**:
+    - Installed Python ML stack (numpy, pandas, scikit-learn, spacy, transformers, torch, shap, vaderSentiment, matplotlib, pytest, hypothesis).
+    - Fixed bugs in `scripts/ml/data_prep.py` (pandas Index indexing) and `scripts/ml/features.py` (TTR logic and Token vs string attribute access).
+    - Created modular verification cards in `tests/sdd/` for ML testing.
+    - Verified `data_prep`: train_size=24, val_size=8, test_size=8, label_balance_ratio=1.00.
+    - Verified `features`: feature_dim=36, nan_count=0, ttr_mean=0.9018.
+    - Verified `pipeline`: accuracy_score=0.7000, f1_score=0.7273, fallback_ratio=0.70.
+    - Verified `corpus_analysis`: eigen_centrality_value=0.8807, degree_centrality_value=3.3371.
+    - Verified `evaluate_explain`: evaluation_completed=1, hybrid_accuracy=0.75.
+    - Verified `robustness` (Item 183, 184): nan_count=0, inf_count=0, ttr_long=0.0010.
+    - Verified `integrity`: 4 pytest/hypothesis tests passed (Item 181).
+    - Verified `infrastructure` (Item 131, 132): feature_count=36, name_count=36, API call-sites updated.
+    - Verified `enhanced_metrics` (Item 1, 27, 31, 43, 61): new_features_found=4, batched parsing optimized.
