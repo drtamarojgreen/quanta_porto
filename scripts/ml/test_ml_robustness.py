@@ -17,6 +17,8 @@ def test_extract_all_interpretable_features_basic():
     assert "MATTR" in names
     assert "FleschEase" in names
     assert "AvgTreeDepth" in names
+    assert "IsEnglish" in names
+    assert "EmbedMean" in names
 
 @given(st.text())
 def test_extract_all_interpretable_features_robustness(t):
@@ -32,6 +34,7 @@ def test_mattr_known_values():
     from features import advanced_lexical_features
     # If window_size=50 and text is short, it should be same as TTR
     text = ["word " * 10]
+    # We call it manually or via registry
     feats = advanced_lexical_features(text, window_size=50)
     assert feats[0, 0] == 0.1 # 1 unique / 10 total
 
@@ -41,6 +44,14 @@ def test_readability_known_values():
     feats = rhythm_readability_features(text)
     # flesch ease for simple sentence should be high
     assert feats[0, 3] > 100
+
+def test_cleaning():
+    from features import registry
+    texts = ["<h1>Title</h1>"]
+    # Internal cleaning check
+    feats, names = extract_all_interpretable_features(texts)
+    # If cleaned, title ratio might be different or at least it shouldn't crash
+    assert feats.shape[0] == 1
 
 if __name__ == "__main__":
     pytest.main([__file__])

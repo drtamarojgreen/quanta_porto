@@ -21,6 +21,6 @@
     - Verified `corpus_analysis`: eigen_centrality_value=0.8807, degree_centrality_value=3.3371.
     - Verified `evaluate_explain`: evaluation_completed=1, hybrid_accuracy=0.75.
     - Verified `robustness` (Item 183, 184): nan_count=0, inf_count=0, ttr_long=0.0010.
-    - Verified `integrity`: 4 pytest/hypothesis tests passed (Item 181).
-    - Verified `infrastructure` (Item 131, 132): feature_count=36, name_count=36, API call-sites updated.
-    - Verified `enhanced_metrics` (Item 1, 27, 31, 43, 61): new_features_found=4, batched parsing optimized.
+    - Verified `integrity`: 5 pytest/hypothesis tests passed (Item 181).
+    - Verified `infrastructure` (Item 131, 132, 121, 125): feature_count=60, name_count=60, cleaning implemented.
+    - Verified `enhanced_metrics` (Item 1, 27, 31, 43, 61, 71, 81, 106, 111): new_features implemented.

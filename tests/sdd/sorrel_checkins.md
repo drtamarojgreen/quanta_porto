@@ -63,7 +63,8 @@
 - [x] Implement Comprehensive Robustness Tests (Item 183, 181).
 - [x] Verify ML implementation against NaN/Inf restrictions (Item 184).
 - [x] Implement Foundational ML Infrastructure (Item 131, 132).
-- [x] Implement Foundational Feature Enhancements (Item 1, 27, 31, 43).
+- [x] Implement Foundational Feature Enhancements (Item 1, 27, 31, 43, 71, 81, 106, 111).
+- [x] Implement Preprocessing and Robustness (Item 121, 125, 183, 184).
 
 ## Enhancement Requirements (from docs/ml_enhancement_backlog.md)
 - **Infrastructure (Category N)**: Implement FeatureRegistry (Item 131) and Named Column Output (Item 132).

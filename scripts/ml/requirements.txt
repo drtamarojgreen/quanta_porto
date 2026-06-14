@@ -1,5 +1,5 @@
 spacy
-numpy
+numpy==2.4.6
 scikit-learn
 transformers
 shap
@@ -14,3 +14,6 @@ textstat
 hypothesis
 pytest
 pytest-cov
+sentence-transformers
+langdetect
+Markdown
