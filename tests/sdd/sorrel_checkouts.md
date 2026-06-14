@@ -17,8 +17,9 @@
     - Enhanced `scripts/ml/corpus_analysis.py` with `WordCategorizer` for cross-corpus leaning and dimension assignment.
     - Updated `scripts/ml/features.py` to include `HumanLeaningRatio`, `LLMLeaningRatio`, and `TopDimRatio` features.
     - Created `scripts/ml/dimensions.json` for grounded dimension definitions.
-    - Implemented `scripts/ml/test_categorical_analysis.py` for automated verification.
+    - Implemented `tests/ml/test_categorical_analysis.py` for automated verification.
+- **Completed Features**: MATTR (A.1), MTLD (A.2), Yule's K (A.4), Capitalization Ratio (B.13), Contraction Frequency (B.15), Flesch Reading Ease (C.27).
 - **Verification**:
-    - Verified word leaning classification using mock corpuses: `words.csv` generated with expected `Human-leaning` and `LLM-leaning` labels.
+    - Verified word leaning classification using mock corpuses: `tests/ml/test_words.csv` generated with expected `Human-leaning` and `LLM-leaning` labels.
     - Verified integration with ML pipeline: `test_pipeline.py` executes successfully with 33 features (24 original + 3 categorical + 6 lexical/morphological).
     - Verified repository hygiene: No `__pycache__` or temporary artifacts committed.

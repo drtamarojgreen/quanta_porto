@@ -86,7 +86,7 @@ def stylometric_features(texts):
         tokens = [t.text.lower() for t in doc if t.is_alpha]
         words = [t.text.lower() for t in doc if not t.is_punct and not t.is_space]
         if not words:
-            feats.append([0]*13); continue
+            feats.append([0]*19); continue
         ttr = len(set(words)) / len(words)
         hapax = sum(1 for w in set(words) if words.count(w) == 1) / len(words)
         avg_word_len = np.mean([len(w) for w in words])
@@ -153,8 +153,7 @@ def passive_voice_ratio(texts):
 
 def sentiment_features(texts):
     feats = []
-    for text in texts:
-        doc = nlp(text)
+    for doc in nlp.pipe(texts, batch_size=256):
         sents = [s.text for s in doc.sents]
         scores = [analyzer.polarity_scores(s) for s in sents]
         if not scores:
