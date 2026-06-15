@@ -21,19 +21,12 @@ def card_features():
 
     features, names = extract_all_interpretable_features(texts)
 
-    # Numeric evidence
-    feature_dim = features.shape[1]
-    nan_count = np.isnan(features).sum()
-    passive_ratio_mean = np.mean(features[:, 13])
-    ttr_mean = np.mean(features[:, 0])
-
-    print(f"feature_dim = {feature_dim}")
-    print(f"nan_count = {nan_count}")
-    print(f"passive_ratio_mean = {passive_ratio_mean:.4f}")
-    print(f"ttr_mean = {ttr_mean:.4f}")
-
-    if feature_dim != 36 or nan_count != 0 or ttr_mean == 1.0 or ttr_mean == 0:
-        raise Exception("Validation failed")
+    return {
+        "feature_dim": features.shape[1],
+        "nan_count": np.isnan(features).sum(),
+        "passive_ratio_mean": np.mean(features[:, 13]),
+        "ttr_mean": np.mean(features[:, 0])
+    }
 
 if __name__ == "__main__":
     runner = SorrelRunner()

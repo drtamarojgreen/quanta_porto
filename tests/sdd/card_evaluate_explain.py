@@ -15,11 +15,8 @@ def card_evaluate_explain():
     y_true = [0, 1, 0, 1]
     y_pred = [0, 1, 1, 1]
     exp_needed = [False, False, True, False]
-
-    # Just verify it runs without error as it mostly prints
     evaluate_hybrid_system(y_true, y_pred, exp_needed)
-
-    print("evaluation_completed = 1")
+    return {"evaluation_completed": 1}
 
 if __name__ == "__main__":
     runner = SorrelRunner()

@@ -10,6 +10,7 @@ from sentence_transformers import SentenceTransformer
 from langdetect import detect, DetectorFactory
 import html
 from markdown import markdown
+import emoji
 
 DetectorFactory.seed = 42
 nlp = spacy.load("en_core_web_sm")
@@ -17,22 +18,17 @@ analyzer = SentimentIntensityAnalyzer()
 model_st = None
 
 class FeatureRegistry:
-    """Item 131: Feature Registry for modular management."""
     def __init__(self):
         self._registry = {}
 
     def register(self, group_name, func, feature_names):
-        """Register a feature extraction function."""
         self._registry[group_name] = {
             "func": func,
             "names": feature_names
         }
 
     def extract_all(self, texts):
-        """Item 132: Return feature names alongside arrays."""
-        # Item 121, 125, 126: Preprocessing
         clean_texts = [self._clean_text(t) for t in texts]
-
         all_feats = []
         all_names = []
         for group in self._registry.values():
@@ -42,12 +38,8 @@ class FeatureRegistry:
         return np.hstack(all_feats), all_names
 
     def _clean_text(self, text):
-        """Items 121, 125, 126: Markdown and HTML cleaning."""
-        # Unescape HTML entities
         text = html.unescape(text)
-        # Remove HTML tags if any
         text = re.sub(r'<[^>]*>', '', text)
-        # Simple Markdown removal (not full parsing for speed)
         text = re.sub(r'#+\s+', '', text)
         text = re.sub(r'[*_]{1,3}', '', text)
         text = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', text)
@@ -58,7 +50,7 @@ def stylometric_features(texts):
     for doc in nlp.pipe(texts, batch_size=256):
         words = [t.text.lower() for t in doc if t.is_alpha and not t.is_punct]
         if not words:
-            feats.append([0]*13); continue
+            feats.append([0]*15); continue
         ttr = len(set(words)) / len(words)
         hapax = sum(1 for w in set(words) if words.count(w) == 1) / len(words)
         avg_word_len = np.mean([len(w) for w in words])
@@ -83,29 +75,126 @@ def stylometric_features(texts):
         func_count = sum(1 for t in words if t in func_words)
         func_ratio = func_count / len(words) if words else 0
 
+        counts = Counter(words)
+        N = len(words)
+        simpson_d = sum(n * (n - 1) for n in counts.values()) / (N * (N - 1)) if N > 1 else 0
+        words_no_punct = [t.text for t in doc if not t.is_punct and not t.is_space]
+        punct_norm_len = np.mean([len(w) for w in words_no_punct]) if words_no_punct else 0
+
         feats.append([ttr, hapax, avg_word_len, sent_len_mean, sent_len_std,
-                      noun, verb, adj, adv, pron, adp, conj, func_ratio])
+                      noun, verb, adj, adv, pron, adp, conj, func_ratio, simpson_d, punct_norm_len])
     return np.array(feats)
 
-def multilingual_features(texts):
+def advanced_lexical_features(texts, window_size=50):
     feats = []
-    for text in texts:
-        try:
-            lang = detect(text)
-            is_en = 1.0 if lang == 'en' else 0.0
-        except:
-            is_en = 0.0
-        feats.append([is_en])
+    for doc in nlp.pipe(texts, batch_size=256):
+        words = [t.text.lower() for t in doc if t.is_alpha and not t.is_punct]
+        N = len(words)
+        if N == 0:
+            feats.append([0]*4); continue
+        if N < window_size:
+            mattr = len(set(words)) / N
+        else:
+            ttrs = []
+            for i in range(N - window_size + 1):
+                window = words[i:i+window_size]
+                ttrs.append(len(set(window)) / window_size)
+            mattr = np.mean(ttrs)
+        cttr = len(set(words)) / np.sqrt(2 * N)
+        counts = Counter(words)
+        m1 = N
+        m2 = sum(f**2 for f in counts.values())
+        yules_k = 10000 * (m2 - m1) / (m1**2) if m1 > 1 else 0
+        mtld = N / (len(set(words)) + 1e-10)
+        feats.append([mattr, cttr, yules_k, mtld])
     return np.array(feats)
 
-def detection_signals_features(texts):
+def morphology_casing_features(texts):
     feats = []
-    prefaces = {"as an ai", "i cannot", "it is important to note", "in summary", "certainly"}
-    for text in texts:
-        text_lower = text.lower()
-        residue_count = sum(1 for p in prefaces if p in text_lower)
-        feats.append([residue_count / (len(text.split()) + 1)])
+    for doc in nlp.pipe(texts, batch_size=256):
+        N = len(doc)
+        if N == 0:
+            feats.append([0]*8); continue
+        lemmas = set(t.lemma_ for t in doc if t.is_alpha)
+        surface = set(t.text.lower() for t in doc if t.is_alpha)
+        inflect_var = len(lemmas) / len(surface) if surface else 0
+        title_case = sum(1 for t in doc if t.text.istitle()) / N
+        all_caps = sum(1 for t in doc if t.text.isupper()) / N
+        contractions = sum(1 for t in doc if "'" in t.text) / N
+        nums = sum(1 for t in doc if t.like_num) / N
+        dates = sum(1 for t in doc if t.ent_type_ == "DATE") / N
+        emoji_count = emoji.emoji_count(doc.text) / N
+        symbol_count = sum(1 for t in doc if t.pos_ == "SYM") / N
+        feats.append([inflect_var, title_case, all_caps, contractions, nums, dates, emoji_count, symbol_count])
     return np.array(feats)
+
+def rhythm_readability_features(texts):
+    feats = []
+    for doc in nlp.pipe(texts, batch_size=256):
+        text = doc.text
+        sents = [s for s in doc.sents if len(s) > 0]
+        sent_lens = [len(s) for s in sents]
+        if not sent_lens:
+            feats.append([0]*8)
+            continue
+        med_sent_len = np.median(sent_lens)
+        skew_sent_len = skew(sent_lens) if len(sent_lens) > 2 else 0
+        kurt_sent_len = kurtosis(sent_lens) if len(sent_lens) > 2 else 0
+        flesch_ease = textstat.flesch_reading_ease(text)
+        flesch_grade = textstat.flesch_kincaid_grade(text)
+        starts = [s[0].text.lower() for s in sents if len(s) > 0]
+        start_div = len(set(starts)) / len(starts) if starts else 0
+        paras = [p for p in text.split('\n\n') if p.strip()]
+        para_count = len(paras)
+        avg_para_len = np.mean([len(p.split()) for p in paras]) if paras else 0
+        feats.append([med_sent_len, skew_sent_len, kurt_sent_len, flesch_ease, flesch_grade, start_div, para_count, avg_para_len])
+    return np.array(feats)
+
+def _get_tree_depth(node):
+    depth = 0
+    stack = [(node, 1)]
+    while stack:
+        curr, d = stack.pop()
+        depth = max(depth, d)
+        for child in curr.children:
+            stack.append((child, d + 1))
+    return depth
+
+def advanced_syntax_features(texts):
+    feats = []
+    for doc in nlp.pipe(texts, batch_size=256):
+        depths = []
+        sub_clauses = 0
+        total_tokens = len(doc)
+        total_dist = 0
+        dep_links = 0
+        for sent in doc.sents:
+            depths.append(_get_tree_depth(sent.root))
+            for token in sent:
+                if token.dep_ in ["advcl", "relcl", "ccomp", "xcomp"]:
+                    sub_clauses += 1
+                if token.head != token:
+                    total_dist += abs(token.i - token.head.i)
+                    dep_links += 1
+        avg_depth = np.mean(depths) if depths else 0
+        sub_ratio = sub_clauses / total_tokens if total_tokens > 0 else 0
+        avg_dep_dist = total_dist / dep_links if dep_links > 0 else 0
+        feats.append([avg_depth, sub_ratio, avg_dep_dist])
+    return np.array(feats)
+
+def passive_voice_ratio(texts):
+    ratios = []
+    for doc in nlp.pipe(texts, batch_size=256):
+        passive = 0
+        total_clauses = 0
+        for sent in doc.sents:
+            for token in sent:
+                if token.dep_ == "nsubjpass":
+                    passive += 1
+            total_clauses += sum(1 for t in sent if t.pos_ == "VERB")
+        ratio = passive / total_clauses if total_clauses > 0 else 0
+        ratios.append(ratio)
+    return np.array(ratios).reshape(-1, 1)
 
 def advanced_pos_features(texts):
     feats = []
@@ -134,7 +223,11 @@ def discourse_features(texts):
         contrast_count = sum(1 for m in contrast_markers if m in text) / N if N else 0
         sequence_count = sum(1 for m in sequence_markers if m in text) / N if N else 0
         list_like = len(re.findall(r'^\s*[-*•\d+.]\s+', doc.text, re.M)) / len(list(doc.sents)) if list(doc.sents) else 0
-        feats.append([contrast_count, sequence_count, list_like])
+        tokens = [t.text.lower() for t in doc if t.is_alpha]
+        bigrams = [ (tokens[i], tokens[i+1]) for i in range(len(tokens)-1) ]
+        repeat_bigrams = len(bigrams) - len(set(bigrams))
+        bigram_repeat_ratio = repeat_bigrams / len(bigrams) if bigrams else 0
+        feats.append([contrast_count, sequence_count, list_like, bigram_repeat_ratio])
     return np.array(feats)
 
 def semantic_transformer_features(texts):
@@ -147,15 +240,18 @@ def semantic_transformer_features(texts):
 def grounding_factual_features(texts):
     feats = []
     for doc in nlp.pipe(texts, batch_size=256):
-        N = len(list(doc.sents))
+        sents = list(doc.sents)
+        N = len(sents)
         if not N:
-            feats.append([0]*4); continue
+            feats.append([0]*5); continue
         person = len([e for e in doc.ents if e.label_ == "PERSON"]) / N
         org = len([e for e in doc.ents if e.label_ == "ORG"]) / N
         gpe = len([e for e in doc.ents if e.label_ == "GPE"]) / N
         facts = len(doc.ents) + sum(1 for t in doc if t.like_num)
         fact_density = facts / N
-        feats.append([person, org, gpe, fact_density])
+        ent_texts = [e.text.lower() for e in doc.ents]
+        recurrence = (len(ent_texts) - len(set(ent_texts))) / len(ent_texts) if ent_texts else 0
+        feats.append([person, org, gpe, fact_density, recurrence])
     return np.array(feats)
 
 def sentiment_emotion_features(texts):
@@ -165,112 +261,42 @@ def sentiment_emotion_features(texts):
         sents = [s.text for s in doc.sents]
         scores = [analyzer.polarity_scores(s) for s in sents]
         if not scores:
-            feats.append([0, 0, 0, 0, 0, 0, 0, 0, 0])
+            feats.append([0]*10)
             continue
         compound = [s['compound'] for s in scores]
         pos = [s['pos'] for s in scores]
         neg = [s['neg'] for s in scores]
         neu = [s['neu'] for s in scores]
         hedging = sum(1 for t in doc if t.text.lower() in hedging_markers) / len(doc) if len(doc) else 0
+        volatility = np.std(compound) if len(compound) > 1 else 0
         feats.append([np.mean(compound), np.std(compound),
                       np.mean(pos), np.std(pos),
                       np.mean(neg), np.std(neg),
                       np.mean(neu), np.std(neu),
-                      hedging])
+                      hedging, volatility])
     return np.array(feats)
 
-def advanced_lexical_features(texts, window_size=50):
+def multilingual_features(texts):
     feats = []
-    for doc in nlp.pipe(texts, batch_size=256):
-        words = [t.text.lower() for t in doc if t.is_alpha and not t.is_punct]
-        N = len(words)
-        if N == 0:
-            feats.append([0]*4); continue
-        if N < window_size:
-            mattr = len(set(words)) / N
-        else:
-            ttrs = []
-            for i in range(N - window_size + 1):
-                window = words[i:i+window_size]
-                ttrs.append(len(set(window)) / window_size)
-            mattr = np.mean(ttrs)
-        cttr = len(set(words)) / np.sqrt(2 * N)
-        m1 = N
-        m2 = sum(f**2 for f in Counter(words).values())
-        yules_k = 10000 * (m2 - m1) / (m1**2) if m1 > 1 else 0
-        mtld = N / (len(set(words)) + 1e-10)
-        feats.append([mattr, cttr, yules_k, mtld])
+    for text in texts:
+        try:
+            lang = detect(text)
+            is_en = 1.0 if lang == 'en' else 0.0
+        except:
+            is_en = 0.0
+        feats.append([is_en])
     return np.array(feats)
 
-def morphology_casing_features(texts):
+def detection_signals_features(texts):
     feats = []
-    for doc in nlp.pipe(texts, batch_size=256):
-        N = len(doc)
-        if N == 0:
-            feats.append([0]*6); continue
-        lemmas = set(t.lemma_ for t in doc if t.is_alpha)
-        surface = set(t.text.lower() for t in doc if t.is_alpha)
-        inflect_var = len(lemmas) / len(surface) if surface else 0
-        title_case = sum(1 for t in doc if t.text.istitle()) / N
-        all_caps = sum(1 for t in doc if t.text.isupper()) / N
-        contractions = sum(1 for t in doc if "'" in t.text) / N
-        nums = sum(1 for t in doc if t.like_num) / N
-        dates = sum(1 for t in doc if t.ent_type_ == "DATE") / N
-        feats.append([inflect_var, title_case, all_caps, contractions, nums, dates])
+    prefaces = {"as an ai", "i cannot", "it is important to note", "in summary", "certainly"}
+    for text in texts:
+        text_lower = text.lower()
+        residue_count = sum(1 for p in prefaces if p in text_lower)
+        feats.append([residue_count / (len(text.split()) + 1)])
     return np.array(feats)
 
-def rhythm_readability_features(texts):
-    feats = []
-    for doc in nlp.pipe(texts, batch_size=256):
-        text = doc.text
-        sent_lens = [len(s) for s in doc.sents if len(s) > 0]
-        if not sent_lens:
-            feats.append([0, 0, 0, 0, 0])
-            continue
-        med_sent_len = np.median(sent_lens)
-        skew_sent_len = skew(sent_lens) if len(sent_lens) > 2 else 0
-        kurt_sent_len = kurtosis(sent_lens) if len(sent_lens) > 2 else 0
-        flesch_ease = textstat.flesch_reading_ease(text)
-        flesch_grade = textstat.flesch_kincaid_grade(text)
-        feats.append([med_sent_len, skew_sent_len, kurt_sent_len, flesch_ease, flesch_grade])
-    return np.array(feats)
-
-def _get_tree_depth(node):
-    if not list(node.children):
-        return 1
-    return 1 + max(_get_tree_depth(child) for child in node.children)
-
-def advanced_syntax_features(texts):
-    feats = []
-    for doc in nlp.pipe(texts, batch_size=256):
-        depths = []
-        sub_clauses = 0
-        total_tokens = len(doc)
-        for sent in doc.sents:
-            depths.append(_get_tree_depth(sent.root))
-            for token in sent:
-                if token.dep_ in ["advcl", "relcl", "ccomp", "xcomp"]:
-                    sub_clauses += 1
-        avg_depth = np.mean(depths) if depths else 0
-        sub_ratio = sub_clauses / total_tokens if total_tokens > 0 else 0
-        feats.append([avg_depth, sub_ratio])
-    return np.array(feats)
-
-def passive_voice_ratio(texts):
-    ratios = []
-    for doc in nlp.pipe(texts, batch_size=256):
-        passive = 0
-        total_clauses = 0
-        for sent in doc.sents:
-            for token in sent:
-                if token.dep_ == "nsubjpass":
-                    passive += 1
-            total_clauses += sum(1 for t in sent if t.pos_ == "VERB")
-        ratio = passive / total_clauses if total_clauses > 0 else 0
-        ratios.append(ratio)
-    return np.array(ratios).reshape(-1, 1)
-
-def entity_density(texts):
+def entity_density_legacy(texts):
     densities = []
     for doc in nlp.pipe(texts):
         entities = set([ent.text for ent in doc.ents])
@@ -283,41 +309,35 @@ def entity_density(texts):
         densities.append([ent_density, noun_diversity])
     return np.array(densities)
 
-# Initialize registry and register features
 registry = FeatureRegistry()
 registry.register("stylometric", stylometric_features, [
     "TTR", "Hapax", "AvgWordLen", "SentLenMean", "SentLenStd",
-    "NounRatio", "VerbRatio", "AdjRatio", "AdvRatio", "PronRatio", "AdpRatio", "ConjRatio", "FuncWordRatio"
+    "NounRatio", "VerbRatio", "AdjRatio", "AdvRatio", "PronRatio", "AdpRatio", "ConjRatio", "FuncWordRatio", "SimpsonD", "PunctNormWordLen"
 ])
 registry.register("advanced_lexical", advanced_lexical_features, ["MATTR", "CTTR", "YulesK", "MTLD"])
-registry.register("morphology_casing", morphology_casing_features, ["InflectVar", "TitleCase", "AllCaps", "Contractions", "NumRatio", "DateRatio"])
+registry.register("morphology_casing", morphology_casing_features, ["InflectVar", "TitleCase", "AllCaps", "Contractions", "NumRatio", "DateRatio", "EmojiRatio", "SymbolRatio"])
 registry.register("advanced_pos", advanced_pos_features, ["PropnRatio", "NumRatio_POS", "AuxRatio", "PartRatio", "FirstPersonRatio", "ModalRatio", "NegationRatio"])
-registry.register("advanced_syntax", advanced_syntax_features, ["AvgTreeDepth", "SubordinateRatio"])
-registry.register("discourse", discourse_features, ["ContrastRatio", "SequenceRatio", "ListDensity"])
+registry.register("advanced_syntax", advanced_syntax_features, ["AvgTreeDepth", "SubordinateRatio", "AvgDepDist"])
+registry.register("discourse", discourse_features, ["ContrastRatio", "SequenceRatio", "ListDensity", "RepetitionBigramRatio"])
 registry.register("rhythm_readability", rhythm_readability_features, [
-    "MedSentLen", "SkewSentLen", "KurtSentLen", "FleschEase", "FleschGrade"
+    "MedSentLen", "SkewSentLen", "KurtSentLen", "FleschEase", "FleschGrade", "StartDiversity", "ParaCount", "AvgParaLen"
 ])
 registry.register("passive", passive_voice_ratio, ["PassiveRatio"])
 registry.register("sentiment_emotion", sentiment_emotion_features, [
     "SentCompoundMean", "SentCompoundStd", "SentPosMean", "SentPosStd",
-    "SentNegMean", "SentNegStd", "SentNeuMean", "SentNeuStd", "HedgingRatio"
+    "SentNegMean", "SentNegStd", "SentNeuMean", "SentNeuStd", "HedgingRatio", "SentVolatility"
 ])
 registry.register("semantic", semantic_transformer_features, ["EmbedMean", "EmbedStd"])
-registry.register("grounding", grounding_factual_features, ["PersonDensity", "OrgDensity", "GpeDensity", "FactDensity"])
+registry.register("grounding", grounding_factual_features, ["PersonDensity", "OrgDensity", "GpeDensity", "FactDensity", "EntRecurrence"])
 registry.register("multilingual", multilingual_features, ["IsEnglish"])
 registry.register("detection", detection_signals_features, ["ResidueRatio"])
-registry.register("entity_legacy", entity_density, ["EntDensity_Legacy", "NounDiversity_Legacy"])
-
-def get_tfidf_features(train_texts, test_texts, max_features=500):
-    vec = TfidfVectorizer(
-        max_features=max_features,
-        stop_words='english',
-        ngram_range=(1,2),
-        min_df=5
-    )
-    train_tfidf = vec.fit_transform(train_texts)
-    test_tfidf = vec.transform(test_texts)
-    return train_tfidf, test_tfidf, vec
+registry.register("entity_legacy", entity_density_legacy, ["EntDensity_Legacy", "NounDiversity_Legacy"])
 
 def extract_all_interpretable_features(texts):
     return registry.extract_all(texts)
+
+def get_tfidf_features(train_texts, test_texts, max_features=500):
+    vec = TfidfVectorizer(max_features=max_features, stop_words='english', ngram_range=(1,2), min_df=5)
+    train_tfidf = vec.fit_transform(train_texts)
+    test_tfidf = vec.transform(test_texts)
+    return train_tfidf, test_tfidf, vec

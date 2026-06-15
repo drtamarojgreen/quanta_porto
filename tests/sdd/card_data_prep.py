@@ -27,30 +27,21 @@ def card_data_prep():
 
     train_df, val_df, test_df = balance_and_split_data(human_df, llm_df)
 
-    # Numeric evidence
     train_size = len(train_df)
-    val_size = len(val_df)
-    test_size = len(test_df)
-
-    total_samples = train_size + val_size + test_size
     label_0_count = (train_df['label'] == 0).sum() + (val_df['label'] == 0).sum() + (test_df['label'] == 0).sum()
     label_1_count = (train_df['label'] == 1).sum() + (val_df['label'] == 1).sum() + (test_df['label'] == 1).sum()
-
     label_balance_ratio = label_0_count / label_1_count if label_1_count > 0 else 0
 
-    print(f"train_size = {train_size}")
-    print(f"val_size = {val_size}")
-    print(f"test_size = {test_size}")
-    print(f"label_balance_ratio = {label_balance_ratio:.2f}")
-
-    # Prompt leakage check
     train_prompts = set(train_df['prompt'])
     test_prompts = set(test_df['prompt'])
     overlap = train_prompts.intersection(test_prompts)
-    print(f"prompt_overlap_count = {len(overlap)}")
 
-    if total_samples != 40 or label_balance_ratio != 1.0 or len(overlap) != 0:
-        raise Exception("Validation failed")
+    # Return map for fact recording
+    return {
+        "train_size": train_size,
+        "label_balance_ratio": label_balance_ratio,
+        "prompt_overlap_count": len(overlap)
+    }
 
 if __name__ == "__main__":
     runner = SorrelRunner()

@@ -17,3 +17,4 @@ pytest-cov
 sentence-transformers
 langdetect
 Markdown
+emoji
