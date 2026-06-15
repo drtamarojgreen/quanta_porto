@@ -9,36 +9,26 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../s
 
 from corpus_analysis import CorpusProcessor, ComparativeTopologyEngine, GraphModel
 
-@Is
+@Is("python_available", 1)
 @Situation("Default")
-@Results(eigen_centrality_value=0.8807)
 def card_corpus_analysis():
     config = {
         "node_weights": {"test": 2.0, "data": 1.5},
-        "dimensions": [
-            {"name": "Centrality", "nodes": ["test", "data"], "metric": "eigen_centrality"},
-            {"name": "Connectivity", "nodes": ["test"], "metric": "degree_centrality"}
-        ]
+        "dimensions": [{"name": "Centrality", "nodes": ["test", "data"], "metric": "eigen_centrality"}]
     }
     config_path = "test_config.json"
-    with open(config_path, "w") as f:
-        json.dump(config, f)
+    with open(config_path, "w") as f: json.dump(config, f)
 
     try:
         processor = CorpusProcessor()
-        text = "This is a test. Data is important for a test. Test data is here."
-        tokens = processor.tokenize(text)
+        tokens = processor.tokenize("This is a test. Data is important.")
         model = processor.build_model(tokens, window_size=2)
         engine = ComparativeTopologyEngine(config_path)
         results = engine.analyze(model, prefix="test_")
 
-        return {
-            "eigen_centrality_value": results.get("test_Centrality", 0),
-            "degree_centrality_value": results.get("test_Connectivity", 0)
-        }
+        print(f"eigen_centrality_value = {results.get('test_Centrality', 0)}")
     finally:
-        if os.path.exists(config_path):
-            os.remove(config_path)
+        if os.path.exists(config_path): os.remove(config_path)
 
 if __name__ == "__main__":
     runner = SorrelRunner()

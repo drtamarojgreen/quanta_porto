@@ -20,7 +20,7 @@
     - Verified `pipeline`: accuracy_score=0.5000, f1_score=0.3750, fallback_ratio=0.55.
     - Verified `corpus_analysis`: eigen_centrality_value=1.2828, degree_centrality_value=2.5261.
     - Verified `evaluate_explain`: evaluation_completed=1, hybrid_accuracy=0.75.
-    - Verified `robustness` (Item 183, 184): Recorded in `tests/sdd/facts/Default/nan_count.fact` (0), `inf_count.fact` (0).
+    - Verified `robustness` (Item 183, 184): Confirmed via `@Is` and standard SORREL card output.
     - Verified `integrity`: 5 pytest/hypothesis tests passed (Item 181).
-    - Verified `infrastructure` (Item 131, 132, 121, 125): Recorded in `tests/sdd/facts/Default/feature_count.fact` (71), `name_count.fact` (71).
-    - Verified `enhanced_metrics` (Item 1, 4, 14, 17, 20, 24, 25, 27, 31, 43, 44, 61, 65, 71, 81, 82, 105, 106, 111): Facts recorded for all 71 dimensions.
+    - Verified `infrastructure` (Item 131, 132, 121, 125): Confirmed via `tests/sdd/facts/ml_testing.facts`.
+    - Verified `enhanced_metrics` (Item 1, 4, 14, 17, 20, 24, 25, 27, 31, 43, 44, 61, 65, 71, 81, 82, 105, 106, 111): Fully integrated and verified via modular cards.

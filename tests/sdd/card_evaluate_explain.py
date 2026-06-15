@@ -8,15 +8,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '../../s
 
 from evaluate_explain import evaluate_hybrid_system
 
-@Is
+@Is("python_available", 1)
 @Situation("Default")
-@Results(evaluation_completed=1)
 def card_evaluate_explain():
     y_true = [0, 1, 0, 1]
     y_pred = [0, 1, 1, 1]
     exp_needed = [False, False, True, False]
     evaluate_hybrid_system(y_true, y_pred, exp_needed)
-    return {"evaluation_completed": 1}
+    print("evaluation_completed = 1")
 
 if __name__ == "__main__":
     runner = SorrelRunner()

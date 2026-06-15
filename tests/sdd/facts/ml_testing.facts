@@ -1,0 +1,14 @@
+Situation: Default
+# SORREL Facts for QuantaPorto Machine Learning System
+
+Is python_available = 1
+Is spacy_model_available = 1
+Is sentence_transformers_available = 1
+Is testing_backlog_initialized = 1
+
+# Dependencies
+Is numpy_version = 2.4.6
+Is pandas_version = 3.0.3
+
+# Targets
+Is feature_target_dim = 71

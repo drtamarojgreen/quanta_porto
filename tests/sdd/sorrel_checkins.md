@@ -43,7 +43,7 @@
     - All verification cards must be independent and executable in isolation.
     - No feature extractor shall emit NaN or Inf values (Item 184).
     - All extractors must handle edge cases (empty strings, punctuation-only text) without crashing (Item 183).
-    - **Fact-Based Verification**: All cards must record their observations as `.fact` files in `tests/sdd/facts/` to preserve empirical truth.
+    - **Fact-Based Verification**: All cards must utilize the standard SORREL `.facts` format for environmental discovery and numeric evidence preservation.
 
 ## Planned ML Verification Cards
 - `tests/sdd/card_data_prep.py`: Verify `balance_and_split_data` (outputs: `train_size`, `test_size`, `label_balance_ratio`).

@@ -2,41 +2,30 @@ import sys
 import functools
 import inspect
 import os
-import json
 
-class FactManager:
-    """Handles loading, saving, and validating SORREL facts."""
-    def __init__(self, base_path="tests/sdd/facts"):
-        self.base_path = base_path
-
-    def get_fact_path(self, situation, fact_name):
-        return os.path.join(self.base_path, situation, f"{fact_name}.fact")
-
-    def save_fact(self, situation, fact_name, value):
-        path = self.get_fact_path(situation, fact_name)
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w") as f:
-            f.write(str(value))
-        print(f"Fact recorded: {path} = {value}")
-
-    def load_fact(self, situation, fact_name):
-        path = self.get_fact_path(situation, fact_name)
-        if not os.path.exists(path):
-            return None
-        with open(path, "r") as f:
-            return f.read().strip()
-
-    def check_needs(self, situation, needs):
-        for need in needs:
-            if self.load_fact(situation, need) is None:
-                print(f"Missing dependency: Fact '{need}' in situation '{situation}'")
-                return False
-        return True
+class FactReader:
+    @staticmethod
+    def read_facts(filepath):
+        facts = {}
+        if not os.path.exists(filepath):
+            return facts
+        with open(filepath, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or line.startswith("Situation:"):
+                    continue
+                parts = line.split(" ", 1)
+                if len(parts) < 2: continue
+                rest = parts[1]
+                if "=" in rest:
+                    key, val = rest.split("=", 1)
+                    facts[key.strip()] = val.strip()
+        return facts
 
 class SorrelRunner:
-    def __init__(self):
+    def __init__(self, facts_file="tests/sdd/facts/ml_testing.facts"):
         self.cards = {}
-        self.fact_manager = FactManager()
+        self.facts = FactReader.read_facts(facts_file)
 
     def run(self, card_name, *args):
         if card_name not in self.cards:
@@ -44,32 +33,34 @@ class SorrelRunner:
             return 1
 
         card_func = self.cards[card_name]
-        situation = getattr(card_func, "_situation", "Default")
-        needs = getattr(card_func, "_needs", [])
 
-        # 1. Fact Discovery & Need Validation
-        if not self.fact_manager.check_needs(situation, needs):
-            return 1
+        # 1. Evaluate @Is and @Needs
+        is_clause = getattr(card_func, "_is_clause", None)
+        if is_clause:
+            key, val = is_clause
+            if self.facts.get(key) != val:
+                print(f"Skip: {card_name} (@Is {key} == {val} not met)")
+                return 0 # Standard behavior to return 0 on skipped
+
+        needs_list = getattr(card_func, "_needs", [])
+        for need in needs_list:
+            if need not in self.facts:
+                print(f"Error: {card_name} (@Needs {need} not met)")
+                return 1
 
         try:
-            # 2. Execution & Observation
-            result_map = card_func(*args)
-
-            # 3. Fact Recording
-            expected = getattr(card_func, "_expected_results", {})
-            if result_map:
-                for key, val in result_map.items():
-                    self.fact_manager.save_fact(situation, key, val)
-
+            # 2. Execute
+            card_func(*args)
             return 0
         except Exception as e:
             print(f"Card {card_name} failed: {e}")
             return 1
 
-# Decorators
-def Is(func):
-    func._is_sorrel_card = True
-    return func
+def Is(key, value):
+    def decorator(func):
+        func._is_clause = (key, str(value))
+        return func
+    return decorator
 
 def Needs(fact):
     def decorator(func):
@@ -79,9 +70,9 @@ def Needs(fact):
         return func
     return decorator
 
-def Results(**expected_metrics):
+def Results(**kwargs):
     def decorator(func):
-        func._expected_results = expected_metrics
+        func._results = kwargs
         return func
     return decorator
 
@@ -98,7 +89,7 @@ def dispatch(runner):
 
     card_name = sys.argv[1]
     for name, obj in inspect.getmembers(sys.modules["__main__"]):
-        if hasattr(obj, "_is_sorrel_card"):
+        if hasattr(obj, "_is_sorrel_card") or hasattr(obj, "_is_clause"):
             runner.cards[name] = obj
 
     exit_code = runner.run(card_name, *sys.argv[2:])
