@@ -1,6 +1,0 @@
-train_size = 28
-feature_dim = 71
-ml_pipeline_exit_code = 0
-eigen_centrality_available = 1
-evaluation_logic_available = 1
-ml_robustness_tests_passed = 2

@@ -7,8 +7,11 @@
 
 int main(int argc, char** argv) {
     auto facts = Sorrel::Sdd::Util::FactReader::readFacts("facts/ml_environment.facts");
+    auto pipeline_facts = Sorrel::Sdd::Util::FactReader::readFacts("facts/ml_pipeline.facts");
+    facts.insert(pipeline_facts.begin(), pipeline_facts.end());
+
     if (facts.empty()) {
-        std::cerr << "Error: Could not read facts from facts/ml_environment.facts" << std::endl;
+        std::cerr << "Error: Could not read facts from tests/sdd/facts/" << std::endl;
         return 1;
     }
 
