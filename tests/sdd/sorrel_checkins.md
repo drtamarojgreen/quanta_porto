@@ -30,3 +30,20 @@
 - [x] Design C++ console application.
 - [x] Implement C++ console application.
 - [x] Verify implementation.
+
+## ML categorical classification task
+- **Facts**:
+    - Python 3 environment with `numpy`, `spacy`, `scikit-learn`, `transformers`, `shap`, `vaderSentiment`, `pandas`.
+    - `scripts/ml/corpus_analysis.py` performs graph-based co-occurrence analysis.
+    - `dimensions.json` exists and defines target nodes and metrics.
+- **Restrictions**:
+    - **Empirical Grounding**: Classification of words (Human vs. LLM leaning) must be derived from empirical graph metrics (centrality, associative strength), not heuristic word lists.
+    - **Deterministic Mapping**: Word-to-category mapping must be stable and reproducible.
+    - **No Hallucinated Categories**: Only categories defined in `dimensions.json` or derived from spaCy POS/Dependency tags are permitted.
+- **Task Status**:
+    - [x] Research and Fact Discovery.
+- [x] Define SDD Restrictions and Update Checkins.
+- [x] Enhance `scripts/ml/corpus_analysis.py` with Categorical Classification.
+- [x] Verify `corpus_analysis.py` Modifications.
+- [x] Integrate Categorical Features into ML Features.
+- [x] Empirical Verification.

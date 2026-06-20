@@ -6,6 +6,7 @@ import argparse
 import logging
 import csv
 from collections import Counter
+import spacy
 
 # Professional Logging Configuration
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -13,6 +14,31 @@ logger = logging.getLogger(__name__)
 
 class GraphMetrics:
     """Pure mathematical graph metrics implemented on weighted adjacency matrices."""
+    @staticmethod
+    def graph_density(model):
+        """Measures the ratio of actual edges to possible edges."""
+        n = model.n
+        if n <= 1: return 0.0
+        edge_count = np.count_nonzero(model.matrix)
+        return edge_count / (n * (n - 1))
+
+    @staticmethod
+    def assortativity_proxy(model):
+        """Measures if high degree nodes connect to other high degree nodes."""
+        if model.n <= 1: return 0.0
+        degrees = np.sum(model.matrix, axis=1)
+        if np.var(degrees) == 0: return 0.0
+
+        # Mean degree of neighbors
+        neighbor_degrees = []
+        for i in range(model.n):
+            neighbors = np.where(model.matrix[i, :] > 0)[0]
+            if len(neighbors) > 0:
+                neighbor_degrees.append(np.mean(degrees[neighbors]))
+
+        if not neighbor_degrees: return 0.0
+        return float(np.corrcoef(degrees[:len(neighbor_degrees)], neighbor_degrees)[0, 1])
+
     @staticmethod
     def eigen_centrality(model, target_indices, weights):
         """Measures global influence of target nodes adjusted by node weights."""
@@ -86,12 +112,68 @@ class GraphModel:
         self._weighted_eigen_vecs[w_hash] = v
         return v
 
+class WordCategorizer:
+    """Classifies individual words based on cross-corpus topological leaning."""
+    def __init__(self, human_model, llm_model, config):
+        self.h_model = human_model
+        self.l_model = llm_model
+        self.config = config
+        self.dimensions = config.get("dimensions", [])
+
+    def classify_word_lean(self, word, threshold=0.1):
+        h_idx = self.h_model.word_to_idx.get(word)
+        l_idx = self.l_model.word_to_idx.get(word)
+
+        h_eigen = self.h_model.get_weighted_eigen_vector(np.ones(self.h_model.n))[h_idx] if h_idx is not None else 0.0
+        l_eigen = self.l_model.get_weighted_eigen_vector(np.ones(self.l_model.n))[l_idx] if l_idx is not None else 0.0
+
+        denom = h_eigen + l_eigen
+        if denom == 0: return "Unknown"
+
+        lean = (h_eigen - l_eigen) / denom
+        if lean > threshold: return "Human-leaning"
+        if lean < -threshold: return "LLM-leaning"
+        return "Balanced"
+
+    def assign_to_dimension(self, word):
+        """Assigns a word to the dimension it has the strongest associative strength with."""
+        for dim in self.dimensions:
+            if word in dim.get("nodes", []):
+                return dim["name"]
+
+        best_dim = "General"
+        max_strength = -1.0
+        model = self.h_model if word in self.h_model.word_to_idx else self.l_model
+        if word not in model.word_to_idx: return "Out-of-Vocab"
+
+        w_idx = model.word_to_idx[word]
+        for dim in self.dimensions:
+            core_nodes = dim.get("nodes", [])
+            indices = [model.word_to_idx[n] for n in core_nodes if n in model.word_to_idx]
+            if not indices: continue
+
+            strength = np.mean(model.matrix[w_idx, indices])
+            if strength > max_strength:
+                max_strength = strength
+                best_dim = dim["name"]
+
+        return best_dim
+
 class CorpusProcessor:
     """Handles tokenization and graph model construction."""
     def __init__(self):
         self.re_token = re.compile(r'\b\w+\b')
+        self.nlp = spacy.load("en_core_web_sm", disable=["ner", "parser"])
 
-    def tokenize(self, text):
+    def tokenize(self, text, lemmatize=False, remove_stopwords=False):
+        if lemmatize or remove_stopwords:
+            doc = self.nlp(text)
+            tokens = []
+            for t in doc:
+                if t.is_punct or t.is_space: continue
+                if remove_stopwords and t.is_stop: continue
+                tokens.append(t.lemma_.lower() if lemmatize else t.text.lower())
+            return tokens
         return self.re_token.findall(text.lower())
 
     def build_model(self, tokens, window_size=5, weight_type="ppmi", threshold=0.0):
@@ -142,6 +224,9 @@ class ComparativeTopologyEngine:
                 features[name] = self.metrics.clustering_coefficient(model, indices)
             elif metric == "associative_strength":
                 features[name] = self.metrics.associative_strength(model, indices)
+
+        features[f"{prefix}graph_density"] = self.metrics.graph_density(model)
+        features[f"{prefix}assortativity"] = self.metrics.assortativity_proxy(model)
         return features
 
 def main():
@@ -151,31 +236,33 @@ def main():
     parser.add_argument("--ontology", type=str, help="Path to Reference Ontology Corpus")
     parser.add_argument("--config", type=str, required=True, help="Path to dimensions.json configuration")
     parser.add_argument("--output", type=str, default="triple_comparison.csv", help="Path to output report (CSV)")
+    parser.add_argument("--compare_words", type=str, help="Path to word-level comparison report (CSV)")
     parser.add_argument("--window", type=int, default=5, help="Co-occurrence window size")
     parser.add_argument("--ont_threshold", type=float, default=1.0, help="PPMI threshold for ontology induction (pruning)")
+    parser.add_argument("--lemmatize", action="store_true", help="Use lemmas as nodes")
+    parser.add_argument("--remove_stopwords", action="store_true", help="Filter stop words")
     
     args = parser.parse_args()
     engine = ComparativeTopologyEngine(args.config)
     processor = CorpusProcessor()
     
     all_results = {}
+    models = {}
     
-    # Process each source if present
-    sources = [("human_", args.human), ("llm_", args.llm), ("ont_", args.ontology)]
-    for prefix, path in sources:
+    sources = [("human", args.human), ("llm", args.llm), ("ont", args.ontology)]
+    for prefix_base, path in sources:
         if not path: continue
+        prefix = f"{prefix_base}_"
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 text = f.read()
-            tokens = processor.tokenize(text)
+            tokens = processor.tokenize(text, lemmatize=args.lemmatize, remove_stopwords=args.remove_stopwords)
             if not tokens: continue
-            
-            # Ontology induction uses a stricter pruning threshold
-            threshold = args.ont_threshold if prefix == "ont_" else 0.0
+            threshold = args.ont_threshold if prefix_base == "ont" else 0.0
             model = processor.build_model(tokens, args.window, threshold=threshold)
-            
+            models[prefix_base] = model
             all_results.update(engine.analyze(model, prefix))
-            logger.info(f"Processed graph: {prefix[:-1]}")
+            logger.info(f"Processed graph: {prefix_base}")
         except Exception as e:
             logger.error(f"Error processing {path}: {e}")
 
@@ -183,13 +270,26 @@ def main():
         logger.error("No metrics extracted.")
         return
 
-    # Write report
     with open(args.output, 'w', newline='', encoding='utf-8') as f:
         writer = csv.DictWriter(f, fieldnames=sorted(all_results.keys()))
         writer.writeheader()
         writer.writerow(all_results)
-    
     logger.info(f"Comparative report saved to {args.output}")
+
+    if args.compare_words and "human" in models and "llm" in models:
+        categorizer = WordCategorizer(models["human"], models["llm"], engine.config)
+        union_vocab = sorted(list(set(models["human"].vocab) | set(models["llm"].vocab)))
+        word_results = []
+        for word in union_vocab:
+            lean = categorizer.classify_word_lean(word)
+            dimension = categorizer.assign_to_dimension(word)
+            word_results.append({"word": word, "lean": lean, "dimension": dimension})
+
+        with open(args.compare_words, 'w', newline='', encoding='utf-8') as f:
+            writer = csv.DictWriter(f, fieldnames=["word", "lean", "dimension"])
+            writer.writeheader()
+            writer.writerows(word_results)
+        logger.info(f"Word-level comparison saved to {args.compare_words}")
 
 if __name__ == "__main__":
     main()

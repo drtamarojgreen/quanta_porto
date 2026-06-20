@@ -1,9 +1,9 @@
 import numpy as np
 import pandas as pd
-from features import extract_all_interpretable_features
-from data_prep import balance_and_split_data
-from pipeline import train_interpretable_model, hybrid_predict
-from evaluate_explain import evaluate_hybrid_system
+from scripts.ml.features import extract_all_interpretable_features
+from scripts.ml.data_prep import balance_and_split_data
+from scripts.ml.pipeline import train_interpretable_model, hybrid_predict
+from scripts.ml.evaluate_explain import evaluate_hybrid_system
 
 def run_mock_test():
     print("Generating mock data...")
@@ -28,20 +28,14 @@ def run_mock_test():
     print(f"Train size: {len(train_df)}, Test size: {len(test_df)}")
     
     print("Extracting features for training...")
-    X_train = extract_all_interpretable_features(train_df['text'].tolist())
+    X_train, feature_names = extract_all_interpretable_features(train_df['text'].tolist())
     y_train = train_df['label'].tolist()
     
+    print(f"Extracted {len(feature_names)} features: {feature_names}")
+
     print("Extracting features for testing...")
-    X_test = extract_all_interpretable_features(test_df['text'].tolist())
+    X_test, _ = extract_all_interpretable_features(test_df['text'].tolist())
     y_test = test_df['label'].tolist()
-    
-    feature_names = [
-        "TTR", "Hapax", "AvgWordLen", "SentLenMean", "SentLenStd",
-        "NounRatio", "VerbRatio", "AdjRatio", "AdvRatio", "PronRatio", "AdpRatio", "ConjRatio", "FuncWordRatio",
-        "PassiveRatio",
-        "SentCompoundMean", "SentCompoundStd", "SentPosMean", "SentPosStd", "SentNegMean", "SentNegStd", "SentNeuMean", "SentNeuStd",
-        "EntDensity", "NounDiversity"
-    ]
     
     print("Training interpretable model...")
     rf, scaler = train_interpretable_model(X_train, y_train, X_test, y_test, feature_names)

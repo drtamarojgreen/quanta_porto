@@ -31,7 +31,7 @@ def balance_and_split_data(human_df, llm_df, prompt_col='prompt', text_col='text
     combined_df = pd.concat(matched_data).reset_index(drop=True)
     
     # Stratified split by prompt to avoid prompt leakage
-    unique_prompts = combined_df[prompt_col].unique()
+    unique_prompts = list(combined_df[prompt_col].unique())
     train_prompts, test_prompts = train_test_split(unique_prompts, test_size=0.2, random_state=42)
     train_prompts, val_prompts = train_test_split(train_prompts, test_size=0.125, random_state=42) # 0.125 * 0.8 = 0.1
     

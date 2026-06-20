@@ -19,8 +19,3 @@ def evaluate_hybrid_system(y_true, y_pred, explanation_needed):
     fallback_count = sum(explanation_needed)
     total = len(explanation_needed)
     print(f"Fallback to Interpretable Model: {fallback_count}/{total} ({fallback_count/total:.2%})")
-
-def ablation_study(train_fn, X_train, y_train, X_test, y_test, feature_names):
-    # Example: remove sentiment features (indices 14 to 21 based on features.py)
-    # This is highly dependent on the final feature vector structure
-    pass
