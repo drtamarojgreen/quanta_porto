@@ -1,0 +1,8 @@
+Situation: Default
+# Environmental facts for QuantaPorto ML System
+
+Is python_available = 1
+Is spacy_model_available = 1
+Is sentence_transformers_available = 1
+Is requirements_installed = 1
+Is backlog_initialized = 1
