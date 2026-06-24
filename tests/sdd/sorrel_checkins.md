@@ -1,5 +1,6 @@
-# Sorrel Checkins
+# SORREL Checkins - QuantaPorto ML Governance
 
+<<<<<<< HEAD
 ## Environmental Facts
 - **Scripts**: 23 shell scripts identified in `scripts/` (e.g., `run_task.sh`, `parse_pql.sh`, `check_server_status.sh`).
 - **Compiler**: `g++` (Ubuntu 13.3.0-6ubuntu2~24.04.1).
@@ -47,3 +48,9 @@
 - [x] Verify `corpus_analysis.py` Modifications.
 - [x] Integrate Categorical Features into ML Features.
 - [x] Empirical Verification.
+=======
+- ml_infrastructure_sip: Establish C++ runner and standard fact architecture for ML testing.
+- ml_feature_expansion_sip: Implement 71 high-priority features from the backlog.
+- ml_robustness_sip: Implement property-based and edge-case verification.
+- ml_fact_alignment_sip: Align all cards and facts with the standard SORREL .facts format.
+>>>>>>> origin/ml-sdd-testing-system-2771384678969647105

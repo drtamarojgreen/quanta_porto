@@ -1,0 +1,6 @@
+Situation: Default
+# Target facts for QuantaPorto ML Pipeline
+
+Is feature_target_dim = 71
+Needs python_available = 1
+Needs spacy_model_available = 1
