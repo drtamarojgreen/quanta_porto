@@ -76,14 +76,6 @@ class GraphMetrics:
         if not target_indices: return 0.0
         return float(np.mean(model.matrix[target_indices, :]))
 
-    @staticmethod
-    def graph_density(model):
-        """Item 97: Graph density."""
-        n = model.n
-        if n < 2: return 0.0
-        edges = np.count_nonzero(model.matrix)
-        return edges / (n * (n - 1))
-
 class GraphModel:
     """Mathematical engine for graph topology operations."""
     def __init__(self, matrix, vocab, word_to_idx):
@@ -176,40 +168,26 @@ class CorpusProcessor:
         self.re_token = re.compile(r'\b\w+\b')
         self.nlp = spacy.load("en_core_web_sm", disable=["ner", "parser"])
 
-<<<<<<< HEAD
-    def tokenize(self, text, lemmatize=False, remove_stopwords=False):
-        if lemmatize or remove_stopwords:
-            doc = self.nlp(text)
-            tokens = []
-            for t in doc:
-                if t.is_punct or t.is_space: continue
-                if remove_stopwords and t.is_stop: continue
-                tokens.append(t.lemma_.lower() if lemmatize else t.text.lower())
-            return tokens
-        return self.re_token.findall(text.lower())
-=======
-    def tokenize(self, text, use_lemmas=False, pos_filter=None):
-        """Items 92, 93: Lemmatized nodes and POS filtering."""
-        doc = nlp(text)
+    def tokenize(self, text, lemmatize=False, remove_stopwords=False, pos_filter=None):
+        """Combined tokenization supporting lemmatization, stopword removal, and POS filtering."""
+        doc = self.nlp(text)
         tokens = []
         for t in doc:
-            if t.is_stop or t.is_punct or not t.is_alpha:
-                continue
-            if pos_filter and t.pos_ not in pos_filter:
-                continue
-            tokens.append(t.lemma_.lower() if use_lemmas else t.text.lower())
+            if t.is_punct or t.is_space: continue
+            if remove_stopwords and t.is_stop: continue
+            if not t.is_alpha: continue
+            if pos_filter and t.pos_ not in pos_filter: continue
+            tokens.append(t.lemma_.lower() if lemmatize else t.text.lower())
         return tokens
->>>>>>> origin/ml-sdd-testing-system-2771384678969647105
 
     def build_model(self, tokens, window_size=5, weight_type="ppmi", threshold=0.0, directed=False):
-        """Item 94: Directed co-occurrence graphs."""
+        """Builds co-occurrence graph model."""
         vocab = sorted(list(set(tokens)))
         word_to_idx = {word: i for i, word in enumerate(vocab)}
         n = len(vocab)
         matrix = np.zeros((n, n), dtype=np.float64)
         for i, target in enumerate(tokens):
             t_idx = word_to_idx[target]
-            # If directed, we only look ahead
             start = i + 1
             end = min(len(tokens), i + window_size + 1)
             for j in range(start, end):
@@ -255,13 +233,8 @@ class ComparativeTopologyEngine:
             elif metric == "associative_strength":
                 features[name] = self.metrics.associative_strength(model, indices)
 
-<<<<<<< HEAD
         features[f"{prefix}graph_density"] = self.metrics.graph_density(model)
         features[f"{prefix}assortativity"] = self.metrics.assortativity_proxy(model)
-=======
-        # Add global metrics
-        features[f"{prefix}graph_density"] = self.metrics.graph_density(model)
->>>>>>> origin/ml-sdd-testing-system-2771384678969647105
         return features
 
 def main():
@@ -274,47 +247,29 @@ def main():
     parser.add_argument("--compare_words", type=str, help="Path to word-level comparison report (CSV)")
     parser.add_argument("--window", type=int, default=5, help="Co-occurrence window size")
     parser.add_argument("--ont_threshold", type=float, default=1.0, help="PPMI threshold for ontology induction (pruning)")
-<<<<<<< HEAD
     parser.add_argument("--lemmatize", action="store_true", help="Use lemmas as nodes")
     parser.add_argument("--remove_stopwords", action="store_true", help="Filter stop words")
-=======
-    parser.add_argument("--lemmatize", action="store_true", help="Use lemmatized nodes")
     parser.add_argument("--directed", action="store_true", help="Use directed graph")
->>>>>>> origin/ml-sdd-testing-system-2771384678969647105
     
     args = parser.parse_args()
     engine = ComparativeTopologyEngine(args.config)
     processor = CorpusProcessor()
     
     all_results = {}
-<<<<<<< HEAD
     models = {}
     
     sources = [("human", args.human), ("llm", args.llm), ("ont", args.ontology)]
     for prefix_base, path in sources:
-=======
-    sources = [("human_", args.human), ("llm_", args.llm), ("ont_", args.ontology)]
-    for prefix, path in sources:
->>>>>>> origin/ml-sdd-testing-system-2771384678969647105
         if not path: continue
         prefix = f"{prefix_base}_"
         try:
             with open(path, 'r', encoding='utf-8') as f:
                 text = f.read()
-<<<<<<< HEAD
             tokens = processor.tokenize(text, lemmatize=args.lemmatize, remove_stopwords=args.remove_stopwords)
             if not tokens: continue
             threshold = args.ont_threshold if prefix_base == "ont" else 0.0
-            model = processor.build_model(tokens, args.window, threshold=threshold)
-            models[prefix_base] = model
-=======
-            tokens = processor.tokenize(text, use_lemmas=args.lemmatize)
-            if not tokens: continue
-            
-            threshold = args.ont_threshold if prefix == "ont_" else 0.0
             model = processor.build_model(tokens, args.window, threshold=threshold, directed=args.directed)
-            
->>>>>>> origin/ml-sdd-testing-system-2771384678969647105
+            models[prefix_base] = model
             all_results.update(engine.analyze(model, prefix))
             logger.info(f"Processed graph: {prefix_base}")
         except Exception as e:

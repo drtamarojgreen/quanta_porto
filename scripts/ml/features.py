@@ -145,7 +145,7 @@ def count_syllables(word):
         count = 1
     return count
 
-def flesch_reading_ease_custom(doc):
+def flesch_reading_ease(doc):
     words = [t for t in doc if not t.is_punct and not t.is_space]
     sentences = list(doc.sents)
     if not words or not sentences:
@@ -284,7 +284,7 @@ def stylometric_features(texts):
         cap_ratio = sum(1 for t in doc if t.text.istitle() or (t.text.isupper() and len(t.text) > 1)) / total if total > 0 else 0
         contractions = {"n't", "'re", "'ve", "'ll", "'s", "'m", "'d"}
         contraction_freq = sum(1 for t in doc if t.text.lower() in contractions) / total if total > 0 else 0
-        flesch_score = flesch_reading_ease_custom(doc)
+        flesch_score = flesch_reading_ease(doc)
 
         feats.append([ttr, hapax, avg_word_len, sent_len_mean, sent_len_std,
                       noun, verb, adj, adv, pron, adp, conj, func_ratio,
@@ -337,7 +337,7 @@ def sentiment_features(texts):
         neu = [s['neu'] for s in scores]
 
         volatility = np.std(compound) if len(compound) > 1 else 0
-        hedge_count = sum(1 for t in doc if t.text.lower() in hedging_words)
+        hedge_count = sum(1 for w in [t.text.lower() for t in doc] if w in hedging_words)
         hedge_density = hedge_count / len(doc) if len(doc) > 0 else 0
 
         adj_adv = sum(1 for t in doc if t.pos_ in ("ADJ", "ADV"))
@@ -368,8 +368,9 @@ def discourse_features(texts):
         ent_density = len(set([e.text for e in entities])) / n_sents if n_sents else 0
         noun_diversity = len(set(nouns)) / len(nouns) if nouns else 0
 
-        dm_count = sum(1 for t in doc if t.text.lower() in discourse_markers)
-        trans_count = sum(1 for t in doc if t.text.lower() in transitions)
+        tokens_lower = [t.text.lower() for t in doc]
+        dm_count = sum(1 for w in tokens_lower if w in discourse_markers)
+        trans_count = sum(1 for w in tokens_lower if w in transitions)
         dm_density = dm_count / n_sents if n_sents else 0
         trans_density = trans_count / n_sents if n_sents else 0
 
@@ -379,7 +380,8 @@ def discourse_features(texts):
         gpe_ratio = sum(1 for e in entities if e.label_ == "GPE") / total_ents if total_ents > 0 else 0
         date_ratio = sum(1 for e in entities if e.label_ == "DATE") / total_ents if total_ents > 0 else 0
 
-        ungrounded_count = sum(1 for p in ungrounded_phrases if p in doc.text.lower())
+        raw_text_lower = doc.text.lower()
+        ungrounded_count = sum(1 for p in ungrounded_phrases if p in raw_text_lower)
         factual_score = (total_ents + sum(1 for t in doc if t.like_num)) / n_sents if n_sents > 0 else 0
 
         feats.append([ent_density, noun_diversity, dm_density, trans_density,
@@ -408,8 +410,9 @@ def fingerprint_features(texts):
         bigrams = [tuple(tokens[i:i+2]) for i in range(len(tokens)-1)]
         repetition = 1 - (len(set(bigrams)) / len(bigrams)) if bigrams else 0
 
-        residue = sum(1 for p in residue_phrases if p in doc.text.lower())
-        safety = sum(1 for p in safety_phrases if p in doc.text.lower())
+        raw_text_lower = doc.text.lower()
+        residue = sum(1 for p in residue_phrases if p in raw_text_lower)
+        safety = sum(1 for p in safety_phrases if p in raw_text_lower)
 
         feats.append([burstiness, repetition, residue, safety])
     return np.array(feats)
