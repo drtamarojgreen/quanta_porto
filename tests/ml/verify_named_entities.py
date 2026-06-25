@@ -13,14 +13,14 @@ def test_batch_i_features():
     df = pd.DataFrame(feats, columns=names)
 
     print("Batch I features extracted:")
-    target_cols = ["OrgRatio", "GpeRatio", "DateRatio", "UngroundedCount", "FactualDensity"]
+    target_cols = ["OrgDensity", "GpeDensity", "DateRatio", "UngroundedCount", "FactDensity"]
     print(df[target_cols])
 
     # Text 1 has ORG (Apple), GPE (Cupertino, California), DATE (1976)
-    assert df.loc[0, "OrgRatio"] > 0
-    assert df.loc[0, "GpeRatio"] > 0
+    assert df.loc[0, "OrgDensity"] > 0
+    assert df.loc[0, "GpeDensity"] > 0
     assert df.loc[0, "DateRatio"] > 0
-    assert df.loc[0, "FactualDensity"] > 1.0
+    assert df.loc[0, "FactDensity"] > 1.0
 
     # Text 2 has ungrounded phrases
     assert df.loc[1, "UngroundedCount"] >= 2

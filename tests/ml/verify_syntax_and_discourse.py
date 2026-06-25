@@ -13,7 +13,7 @@ def test_batch_ef_features():
     df = pd.DataFrame(feats, columns=names)
 
     print("Batch E&F features extracted:")
-    target_cols = ["AvgDepTreeDepth", "AvgDepDistance", "SubordinateRatio", "DiscourseMarkerDensity"]
+    target_cols = ["AvgTreeDepth", "AvgDepDist", "SubordinateRatio", "DiscourseMarkerDensity"]
     print(df[target_cols])
 
     # Text 1 has discourse marker 'However'
@@ -22,8 +22,8 @@ def test_batch_ef_features():
     # Text 2 has relative clause
     assert df.loc[1, "SubordinateRatio"] > 0
 
-    # AvgDepTreeDepth should be greater than 0
-    assert df.loc[0, "AvgDepTreeDepth"] > 0
+    # AvgTreeDepth should be greater than 0
+    assert df.loc[0, "AvgTreeDepth"] > 0
 
     print("Batch E&F verification: PASSED")
 
