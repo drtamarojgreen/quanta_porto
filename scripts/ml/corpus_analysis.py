@@ -12,6 +12,8 @@ import spacy
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+nlp = spacy.load("en_core_web_sm", disable=["ner", "parser"])
+
 class GraphMetrics:
     """Pure mathematical graph metrics implemented on weighted adjacency matrices."""
     @staticmethod
@@ -50,7 +52,6 @@ class GraphMetrics:
     def degree_centrality(model, target_indices, weights):
         """Measures local connectivity adjusted by node weights."""
         if not target_indices: return 0.0
-        # Multiply rows by weights before summation
         weighted_matrix = model.matrix * weights[:, np.newaxis]
         degrees = np.sum(weighted_matrix[target_indices, :], axis=1)
         return float(np.mean(degrees))
@@ -59,13 +60,14 @@ class GraphMetrics:
     def clustering_coefficient(model, target_indices):
         """Measures local cohesion (triadic closure)."""
         if not target_indices: return 0.0
-        A = model.matrix
-        A3 = np.linalg.matrix_power(A, 3)
+        A = (model.matrix > 0).astype(float) # Use binary for simple CC
+        A2 = np.dot(A, A)
+        A3 = np.dot(A2, A)
         degrees = np.sum(A, axis=1)
         coeffs = []
         for i in target_indices:
             denom = degrees[i] * (degrees[i] - 1)
-            coeffs.append(A3[i, i] / denom if denom > 0 else 0.0)
+            coeffs.append(A3[i, i] / denom if denom > 1 else 0.0)
         return float(np.mean(coeffs))
 
     @staticmethod
@@ -88,7 +90,9 @@ class GraphModel:
         total_sum = np.sum(self.matrix)
         row_sums = np.sum(self.matrix, axis=1)
         col_sums = np.sum(self.matrix, axis=0)
-        pmi = np.log2((self.matrix * total_sum) / (np.outer(row_sums, col_sums) + 1e-10) + 1e-10)
+        # Avoid division by zero
+        outer = np.outer(row_sums, col_sums)
+        pmi = np.log2((self.matrix * total_sum) / (outer + 1e-10) + 1e-10)
         ppmi = np.maximum(0, pmi)
         if threshold > 0:
             ppmi[ppmi < threshold] = 0
@@ -100,7 +104,6 @@ class GraphModel:
         if w_hash in self._weighted_eigen_vecs:
             return self._weighted_eigen_vecs[w_hash]
         
-        # Weighted transition matrix: v_new = (A * W)v
         weighted_matrix = self.matrix * weights[:, np.newaxis]
         v = np.ones(self.n) / self.n
         for _ in range(iterations):
@@ -165,27 +168,32 @@ class CorpusProcessor:
         self.re_token = re.compile(r'\b\w+\b')
         self.nlp = spacy.load("en_core_web_sm", disable=["ner", "parser"])
 
-    def tokenize(self, text, lemmatize=False, remove_stopwords=False):
-        if lemmatize or remove_stopwords:
-            doc = self.nlp(text)
-            tokens = []
-            for t in doc:
-                if t.is_punct or t.is_space: continue
-                if remove_stopwords and t.is_stop: continue
-                tokens.append(t.lemma_.lower() if lemmatize else t.text.lower())
-            return tokens
-        return self.re_token.findall(text.lower())
+    def tokenize(self, text, lemmatize=False, remove_stopwords=False, pos_filter=None):
+        """Combined tokenization supporting lemmatization, stopword removal, and POS filtering."""
+        doc = self.nlp(text)
+        tokens = []
+        for t in doc:
+            if t.is_punct or t.is_space: continue
+            if remove_stopwords and t.is_stop: continue
+            if not t.is_alpha: continue
+            if pos_filter and t.pos_ not in pos_filter: continue
+            tokens.append(t.lemma_.lower() if lemmatize else t.text.lower())
+        return tokens
 
-    def build_model(self, tokens, window_size=5, weight_type="ppmi", threshold=0.0):
+    def build_model(self, tokens, window_size=5, weight_type="ppmi", threshold=0.0, directed=False):
+        """Builds co-occurrence graph model."""
         vocab = sorted(list(set(tokens)))
         word_to_idx = {word: i for i, word in enumerate(vocab)}
         n = len(vocab)
         matrix = np.zeros((n, n), dtype=np.float64)
         for i, target in enumerate(tokens):
             t_idx = word_to_idx[target]
-            start, end = max(0, i - window_size), min(len(tokens), i + window_size + 1)
+            start = i + 1
+            end = min(len(tokens), i + window_size + 1)
             for j in range(start, end):
-                if i != j: matrix[t_idx, word_to_idx[tokens[j]]] += 1
+                matrix[t_idx, word_to_idx[tokens[j]]] += 1
+                if not directed:
+                    matrix[word_to_idx[tokens[j]], t_idx] += 1
         
         model = GraphModel(matrix, vocab, word_to_idx)
         if weight_type == "ppmi":
@@ -241,6 +249,7 @@ def main():
     parser.add_argument("--ont_threshold", type=float, default=1.0, help="PPMI threshold for ontology induction (pruning)")
     parser.add_argument("--lemmatize", action="store_true", help="Use lemmas as nodes")
     parser.add_argument("--remove_stopwords", action="store_true", help="Filter stop words")
+    parser.add_argument("--directed", action="store_true", help="Use directed graph")
     
     args = parser.parse_args()
     engine = ComparativeTopologyEngine(args.config)
@@ -259,7 +268,7 @@ def main():
             tokens = processor.tokenize(text, lemmatize=args.lemmatize, remove_stopwords=args.remove_stopwords)
             if not tokens: continue
             threshold = args.ont_threshold if prefix_base == "ont" else 0.0
-            model = processor.build_model(tokens, args.window, threshold=threshold)
+            model = processor.build_model(tokens, args.window, threshold=threshold, directed=args.directed)
             models[prefix_base] = model
             all_results.update(engine.analyze(model, prefix))
             logger.info(f"Processed graph: {prefix_base}")

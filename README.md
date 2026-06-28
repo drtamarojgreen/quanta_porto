@@ -1,5 +1,10 @@
 # QuantaPorto
 
+<p align="right">
+  <img src="https://static.wixstatic.com/media/888d2d_bcaac197cbc146fdaf6abf3f52bccd1e~mv2.png/v1/fill/w_114,h_151,al_c,q_85,usm_0.66_1.00_0.01,enc_avif,quality_auto/logo_redesign_complete_transparent.png" width="100" />
+  <img src="https://b78854025b2f8d3f1de2.cdn6.editmysite.com/uploads/b/b78854025b2f8d3f1de2529ade2040fb86b86de2b24a5125771214348e8a557a/tjg_web_services_logo9_1617417175.png?width=2400&optimize=medium" width="200" />
+</p>
+
 ---
 
 **QuantaPorto** is a philosophical and technical framework for developing and interacting with Large Language Models (LLMs) in a local, controlled, and interpretable environment.

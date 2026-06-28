@@ -8,3 +8,13 @@ nltk
 pandas
 datasets
 torch
+matplotlib
+scipy
+textstat
+hypothesis
+pytest
+pytest-cov
+sentence-transformers
+langdetect
+Markdown
+emoji

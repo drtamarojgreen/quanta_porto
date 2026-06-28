@@ -31,7 +31,7 @@ def run_mock_test():
     X_train, feature_names = extract_all_interpretable_features(train_df['text'].tolist())
     y_train = train_df['label'].tolist()
     
-    print(f"Extracted {len(feature_names)} features: {feature_names}")
+    print(f"Extracted {len(feature_names)} features.")
 
     print("Extracting features for testing...")
     X_test, _ = extract_all_interpretable_features(test_df['text'].tolist())

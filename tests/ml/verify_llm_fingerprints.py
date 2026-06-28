@@ -13,11 +13,11 @@ def test_batch_k_features():
     df = pd.DataFrame(feats, columns=names)
 
     print("Batch K features extracted:")
-    target_cols = ["BurstinessScore", "RepetitionPenalty", "AssistantResidue", "SafetyDisclaimer"]
+    target_cols = ["BurstinessScore", "RepetitionPenalty", "ResidueRatio", "SafetyDisclaimer"]
     print(df[target_cols])
 
     # Text 1 has residue and safety
-    assert df.loc[0, "AssistantResidue"] > 0
+    assert df.loc[0, "ResidueRatio"] > 0
     assert df.loc[0, "SafetyDisclaimer"] > 0
 
     # Text 2 has high repetition
