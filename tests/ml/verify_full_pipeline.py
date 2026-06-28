@@ -31,16 +31,12 @@ def run_mock_test():
     X_train, feature_names = extract_all_interpretable_features(train_df['text'].tolist())
     y_train = train_df['label'].tolist()
     
-    print(f"Extracted {len(feature_names)} features: {feature_names}")
+    print(f"Extracted {len(feature_names)} features.")
 
     print("Extracting features for testing...")
     X_test, _ = extract_all_interpretable_features(test_df['text'].tolist())
     y_test = test_df['label'].tolist()
     
-<<<<<<< HEAD:tests/ml/verify_full_pipeline.py
-=======
-    
->>>>>>> origin/ml-sdd-testing-system-2771384678969647105:scripts/ml/test_pipeline.py
     print("Training interpretable model...")
     rf, scaler = train_interpretable_model(X_train, y_train, X_test, y_test, feature_names)
     

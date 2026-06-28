@@ -13,14 +13,14 @@ def test_batch_b_features():
     df = pd.DataFrame(feats, columns=names)
 
     print("Batch B features extracted:")
-    print(df[["InflectionalVariety", "LemmaSurfaceRatio", "TypoRatio", "ElongatedRatio", "NumericRatio"]])
+    print(df[["InflectVar", "TitleCase", "TypoRatio", "ElongatedRatio", "NumericRatio"]])
 
     # Text 1 has numeric and elongated
     assert df.loc[0, "NumericRatio"] > 0
     assert df.loc[0, "ElongatedRatio"] > 0
 
     # Text 2 has inflectional variety (Running, runners, ran all map to run)
-    assert df.loc[1, "InflectionalVariety"] > 1.0
+    assert df.loc[1, "InflectVar"] < 1.0
 
     # Text 3 has typos
     assert df.loc[2, "TypoRatio"] > 0
